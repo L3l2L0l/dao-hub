@@ -123,39 +123,18 @@ titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 左侧功能区（严格按照主窗口内部定位） ==========
-local leftPanel = Instance.new("Frame")
-leftPanel.Name = "LeftPanel"
-leftPanel.BackgroundTransparency = 1
--- 面板宽度 130，高度从顶部栏下方一直延伸到底部
-leftPanel.Size = UDim2.new(0, 130, 1, -50) 
-leftPanel.Position = UDim2.new(0, 0, 0, 50) 
-leftPanel.Parent = main -- 关键：确保它是主窗口的子元素，不会再跑到外面
+-- ========== 左侧功能按钮（直接挂载在主窗口下，绝对定位，绝不可能跑到窗口外） ==========
 
 -- 左侧分割线（按你要求：距离主窗口左侧 80px）
 local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
-blueLine.Size = UDim2.new(0, 2, 1, 0)
-blueLine.Position = UDim2.new(0, 80, 0, 0) -- 80px 处
+blueLine.Size = UDim2.new(0, 2, 1, -50) -- 高度填满顶部栏下方
+blueLine.Position = UDim2.new(0, 80, 0, 50) -- X=80px，Y=50px（顶部栏下方）
 blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
-blueLine.Parent = leftPanel
+blueLine.Parent = main -- 直接挂载到主窗口
 
--- 统一列表布局，设置为左对齐
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 10)
-listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-listLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Parent = leftPanel
-
--- 边距设置：顶部 0，左侧 50（让按钮起始于距离主窗口 50px 处）
-local listPadding = Instance.new("UIPadding")
-listPadding.PaddingTop = UDim.new(0, 0)
-listPadding.PaddingLeft = UDim.new(0, 50) -- 50px 处
-listPadding.Parent = leftPanel
-
--- ESP 按钮
+-- ESP 按钮（X=50px，Y=50px）
 local espButton = Instance.new("TextButton")
 espButton.Name = "ESPButton"
 espButton.Text = "ESP"
@@ -165,14 +144,14 @@ espButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 espButton.BorderSizePixel = 0
 espButton.Size = UDim2.new(0, 80, 0, 36) -- 宽 80，高 36
-espButton.LayoutOrder = 1
-espButton.Parent = leftPanel
+espButton.Position = UDim2.new(0, 50, 0, 50) -- 距离左侧 50px
+espButton.Parent = main
 
 local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
--- 视觉按钮
+-- 视觉按钮（X=50px，Y=96px，间隔 10px）
 local visionButton = Instance.new("TextButton")
 visionButton.Name = "VisionButton"
 visionButton.Text = "视觉"
@@ -182,14 +161,14 @@ visionButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 visionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 visionButton.BorderSizePixel = 0
 visionButton.Size = UDim2.new(0, 80, 0, 36)
-visionButton.LayoutOrder = 2
-visionButton.Parent = leftPanel
+visionButton.Position = UDim2.new(0, 50, 0, 96) -- 距离左侧 50px
+visionButton.Parent = main
 
 local visionBtnCorner = Instance.new("UICorner")
 visionBtnCorner.CornerRadius = UDim.new(0, 6)
 visionBtnCorner.Parent = visionButton
 
--- Setting 按钮
+-- Setting 按钮（X=50px，Y=142px，间隔 10px）
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -199,19 +178,18 @@ settingButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 settingButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 settingButton.BorderSizePixel = 0
 settingButton.Size = UDim2.new(0, 80, 0, 36)
-settingButton.LayoutOrder = 3
-settingButton.Parent = leftPanel
+settingButton.Position = UDim2.new(0, 50, 0, 142) -- 距离左侧 50px
+settingButton.Parent = main
 
 local settingBtnCorner = Instance.new("UICorner")
 settingBtnCorner.CornerRadius = UDim.new(0, 6)
 settingBtnCorner.Parent = settingButton
 
--- ========== 右侧内容区域（避让左侧按钮，防止重叠） ==========
+-- ========== 右侧内容区域（避让左侧按钮） ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
--- 按钮延伸到了 130px，所以内容区右移到 140px 开始
-content.Position = UDim2.new(0, 140, 0, 110) 
+content.Position = UDim2.new(0, 140, 0, 110) -- 按钮延伸到 130px，所以内容区从 140px 开始
 content.Size = UDim2.new(1, -150, 1, -120)
 content.Parent = main
 
