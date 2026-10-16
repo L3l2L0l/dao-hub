@@ -42,7 +42,7 @@ main.Name = "MainWindow"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
 main.Size = UDim2.fromScale(0.5, 0.5)
-main.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- 改为极深色
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 main.BorderSizePixel = 0
 main.Parent = screenGui
 
@@ -51,7 +51,7 @@ mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = main
 
 local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(100, 100, 120) -- 边框稍微亮一点点
+mainStroke.Color = Color3.fromRGB(100, 100, 120)
 mainStroke.Thickness = 1.5
 mainStroke.Parent = main
 
@@ -68,7 +68,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "TitleLabel"
 titleLabel.Text = "dao hub"
 titleLabel.Font = Enum.Font.GothamBlack
-titleLabel.TextSize = 30 -- 字体加大
+titleLabel.TextSize = 30
 titleLabel.BackgroundTransparency = 1
 titleLabel.Size = UDim2.new(1, 0, 0, 40)
 titleLabel.Position = UDim2.new(0, 0, 0, 5)
@@ -76,15 +76,14 @@ titleLabel.TextStrokeTransparency = 0.5
 titleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 titleLabel.Parent = topBar
 
--- 彩虹渐变
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 50)),    -- 亮红
-    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 180, 0)),   -- 亮橙
-    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 255, 50)),  -- 亮黄
-    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(50, 255, 50)),   -- 亮绿
-    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(50, 150, 255)),  -- 亮蓝
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 50, 255))     -- 亮紫
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 50)),
+    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 180, 0)),
+    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 255, 50)),
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(50, 255, 50)),
+    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(50, 150, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 50, 255))
 })
 gradient.Parent = titleLabel
 
@@ -100,7 +99,7 @@ local titleDivider = Instance.new("Frame")
 titleDivider.Name = "TitleDivider"
 titleDivider.Size = UDim2.new(1, -20, 0, 2)
 titleDivider.Position = UDim2.new(0, 10, 0, 48)
-titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255) -- 更亮的蓝
+titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
@@ -110,8 +109,8 @@ resizeButton.Name = "ResizeUI"
 resizeButton.Text = "调节UI"
 resizeButton.TextSize = 14
 resizeButton.Font = Enum.Font.GothamBold
-resizeButton.TextColor3 = Color3.fromRGB(255, 255, 255) -- 纯白
-resizeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255) -- 更亮的蓝
+resizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+resizeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
 resizeButton.BorderSizePixel = 0
 resizeButton.AutoButtonColor = false
 resizeButton.Size = UDim2.new(0, 70, 0, 32)
@@ -135,16 +134,20 @@ local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
 blueLine.Size = UDim2.new(0, 2, 1, 0)
 blueLine.Position = UDim2.new(1, -2, 0, 0)
-blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255) -- 亮青色
+blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = leftPanel
 
--- 左侧列表布局
+-- 左侧列表布局（改为顶部对齐 + 顶部边距）
 local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 10)
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+listLayout.VerticalAlignment = Enum.VerticalAlignment.Top -- 关键修改：改为顶部对齐
 listLayout.Parent = leftPanel
+
+local listPadding = Instance.new("UIPadding")
+listPadding.PaddingTop = UDim.new(0, 15) -- 距离顶部分割线保留 15 像素间距
+listPadding.Parent = leftPanel
 
 -- ========== 左侧功能按钮：ESP ==========
 local espButton = Instance.new("TextButton")
@@ -181,12 +184,12 @@ local title = Instance.new("TextLabel")
 title.Name = "Title"
 title.BackgroundTransparency = 1
 title.Text = "窗口内容"
-title.TextColor3 = Color3.fromRGB(255, 255, 255) -- 纯白
-title.TextSize = 28 -- 字号加大
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 28
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.TextStrokeTransparency = 0.5
-title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- 加描边
+title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 title.Size = UDim2.new(1, 0, 0, 40)
 title.Parent = defaultPage
 
@@ -195,14 +198,14 @@ local espPage = Instance.new("Frame")
 espPage.Name = "ESPPage"
 espPage.BackgroundTransparency = 1
 espPage.Size = UDim2.new(1, 0, 1, 0)
-espPage.Visible = false -- 默认隐藏
+espPage.Visible = false
 espPage.Parent = content
 
 local espTitle = Instance.new("TextLabel")
 espTitle.Text = "ESP 功能"
 espTitle.BackgroundTransparency = 1
-espTitle.TextColor3 = Color3.fromRGB(255, 255, 255) -- 纯白
-espTitle.TextSize = 24 -- 字号加大
+espTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+espTitle.TextSize = 24
 espTitle.Font = Enum.Font.GothamBold
 espTitle.TextXAlignment = Enum.TextXAlignment.Left
 espTitle.TextStrokeTransparency = 0.5
@@ -220,22 +223,20 @@ local espLayout = Instance.new("UIListLayout")
 espLayout.Padding = UDim.new(0, 12)
 espLayout.Parent = espList
 
--- 状态表
 local espState = {
     Highlight = false,
     Name = false,
     Line = false
 }
 
--- 创建 ESP 开关按钮的函数
 local function createToggleButton(parent, text, key)
     local btn = Instance.new("TextButton")
     btn.Name = key .. "Toggle"
     btn.Text = text .. "：关"
     btn.TextSize = 16
     btn.Font = Enum.Font.GothamBold
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255) -- 文字纯白
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) -- 深灰底色
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
     btn.BorderSizePixel = 0
     btn.Size = UDim2.new(0, 200, 0, 38)
     btn.Parent = parent
@@ -248,10 +249,10 @@ local function createToggleButton(parent, text, key)
         espState[key] = not espState[key]
         if espState[key] then
             btn.Text = text .. "：开"
-            btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255) -- 开启时亮蓝
+            btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
         else
             btn.Text = text .. "：关"
-            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) -- 关闭时深灰
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
         end
     end)
 end
@@ -260,7 +261,6 @@ createToggleButton(espList, "高亮显示玩家", "Highlight")
 createToggleButton(espList, "显示玩家用户名", "Name")
 createToggleButton(espList, "显示距离射线", "Line")
 
--- 点击左侧 ESP 按钮切换页面
 espButton.MouseButton1Click:Connect(function()
     defaultPage.Visible = not defaultPage.Visible
     espPage.Visible = not espPage.Visible
@@ -346,7 +346,7 @@ RunService.RenderStepped:Connect(function()
                         textLabel.BackgroundTransparency = 1
                         textLabel.Size = UDim2.new(1, 0, 1, 0)
                         textLabel.Font = Enum.Font.GothamBold
-                        textLabel.TextSize = 16 -- 名字字号加大
+                        textLabel.TextSize = 16
                         textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         textLabel.TextStrokeTransparency = 0
                         textLabel.Text = targetPlayer.Name
@@ -375,7 +375,7 @@ RunService.RenderStepped:Connect(function()
                             local line = Instance.new("LineHandleAdornment")
                             line.Name = "ESP_Line"
                             line.Adornee = root
-                            line.Thickness = 2 -- 线条加粗
+                            line.Thickness = 2
                             line.Color3 = Color3.fromRGB(0, 150, 255)
                             line.Transparency = 0.4
                             line.ZIndex = 1
