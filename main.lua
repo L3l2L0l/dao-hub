@@ -29,7 +29,7 @@ else
 end
 
 -- ========== 快捷键状态 ==========
-local currentToggleKey = Enum.KeyCode.G -- 默认 G 键
+local currentToggleKey = Enum.KeyCode.G
 
 -- ========== 创建 ScreenGui ==========
 local screenGui = Instance.new("ScreenGui")
@@ -44,7 +44,7 @@ local main = Instance.new("Frame")
 main.Name = "MainWindow"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromScale(0.5, 0.5) -- 初始为屏幕 50% 大小
+main.Size = UDim2.fromScale(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 main.BorderSizePixel = 0
 main.Parent = screenGui
@@ -146,7 +146,7 @@ local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
--- Setting 按钮（左下角固定）
+-- Setting 按钮
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -322,7 +322,7 @@ local settingLayout = Instance.new("UIListLayout")
 settingLayout.Padding = UDim.new(0, 15)
 settingLayout.Parent = settingList
 
--- ========== 设置页面中添加：快捷键设置 ==========
+-- 快捷键设置
 local keyContainer = Instance.new("Frame")
 keyContainer.Name = "KeybindContainer"
 keyContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
@@ -472,9 +472,8 @@ local function cleanupESP()
     espCache = {}
 end
 
--- ========== 核心交互 ESP 逻辑 ==========
+-- ========== 核心交互 ESP 逻辑（重构版） ==========
 local interactCache = {}
-local lastInteractScan = 0
 
 local function cleanupInteractESP()
     for _, data in pairs(interactCache) do
@@ -484,198 +483,65 @@ local function cleanupInteractESP()
     interactCache = {}
 end
 
-RunService.RenderStepped:Connect(function()
-    -- ================= 玩家 ESP =================
-    if not (espState.Highlight or espState.Name or espState.Line) then
-        cleanupESP()
-    else
-        local localPlayer = Players.LocalPlayer
-        local localChar = localPlayer.Character
-        local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
-
-        for _, targetPlayer in ipairs(Players:GetPlayers()) do
-            if targetPlayer ~= localPlayer then
-                local char = targetPlayer.Character
-                local head = char and char:FindFirstChild("Head")
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-
-                if head and root and humanoid and humanoid.Health > 0 then
-                    if not espCache[targetPlayer] then
-                        espCache[targetPlayer] = {}
-                    end
-                    local data = espCache[targetPlayer]
-
-                    -- 1. 高亮
-                    if espState.Highlight then
-                        if not data.Highlight or not data.Highlight.Parent then
-                            local hl = Instance.new("Highlight")
-                            hl.Name = "ESP_Highlight"
-                            hl.FillColor = Color3.fromRGB(0, 150, 255)
-                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                            hl.FillTransparency = 0.5
-                            hl.OutlineTransparency = 0
-                            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                            hl.Parent = char
-                            data.Highlight = hl
-                        end
-                    else
-                        if data.Highlight then data.Highlight:Destroy() data.Highlight = nil end
-                    end
-
-                    -- 2. 用户名
-                    if espState.Name then
-                        if not data.Billboard or not data.Billboard.Parent then
-                            local bb = Instance.new("BillboardGui")
-                            bb.Name = "ESP_Name"
-                            bb.Adornee = head
-                            bb.Size = UDim2.new(0, 200, 0, 50)
-                            bb.StudsOffset = Vector3.new(0, 2.5, 0)
-                            bb.AlwaysOnTop = true
-                            bb.Parent = head
-                            
-                            local textLabel = Instance.new("TextLabel")
-                            textLabel.Name = "NameLabel"
-                            textLabel.BackgroundTransparency = 1
-                            textLabel.Size = UDim2.new(1, 0, 1, 0)
-                            textLabel.Font = Enum.Font.GothamBold
-                            textLabel.TextSize = 16
-                            textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            textLabel.TextStrokeTransparency = 0
-                            textLabel.Text = targetPlayer.Name
-                            textLabel.Parent = bb
-                            
-                            data.Billboard = bb
-                            data.NameLabel = textLabel
-                        end
-                        if data.NameLabel then data.NameLabel.Text = targetPlayer.Name end
-                    else
-                        if data.Billboard then data.Billboard:Destroy() data.Billboard = nil data.NameLabel = nil end
-                    end
-
-                    -- 3. 距离
-                    if espState.Line then
-                        if localRoot then
-                            local distance = (root.Position - localRoot.Position).Magnitude
-                            if not data.Line or not data.Line.Parent then
-                                local line = Instance.new("LineHandleAdornment")
-                                line.Name = "ESP_Line"
-                                line.Adornee = root
-                                line.Thickness = 2
-                                line.Color3 = Color3.fromRGB(0, 150, 255)
-                                line.Transparency = 0.4
-                                line.ZIndex = 1
-                                line.Parent = root
-                                data.Line = line
-                                
-                                local distBb = Instance.new("BillboardGui")
-                                distBb.Name = "ESP_Distance"
-                                distBb.Adornee = root
-                                distBb.Size = UDim2.new(0, 100, 0, 20)
-                                distBb.StudsOffset = Vector3.new(0, -2.5, 0)
-                                distBb.AlwaysOnTop = true
-                                distBb.Parent = root
-                                
-                                local distLabel = Instance.new("TextLabel")
-                                distLabel.BackgroundTransparency = 1
-                                distLabel.Size = UDim2.new(1, 0, 1, 0)
-                                distLabel.Font = Enum.Font.GothamBold
-                                distLabel.TextSize = 14
-                                distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                                distLabel.TextStrokeTransparency = 0
-                                distLabel.Text = string.format("%d m", distance)
-                                distLabel.Parent = distBb
-                                
-                                data.DistanceGui = distBb
-                                data.DistanceLabel = distLabel
-                            end
-                            if data.DistanceLabel then data.DistanceLabel.Text = string.format("%d m", distance) end
-                        end
-                    else
-                        if data.Line then data.Line:Destroy() data.Line = nil end
-                        if data.DistanceGui then data.DistanceGui:Destroy() data.DistanceGui = nil end
-                        if data.DistanceLabel then data.DistanceLabel:Destroy() data.DistanceLabel = nil end
-                    end
-                end
-            end
-        end
-
-        -- 清理死亡/离开的玩家
-        for p, data in pairs(espCache) do
-            if not p.Parent or not p.Character or not p.Character:FindFirstChild("Humanoid") or p.Character.Humanoid.Health <= 0 then
-                if data.Highlight then data.Highlight:Destroy() end
-                if data.Billboard then data.Billboard:Destroy() end
-                if data.Line then data.Line:Destroy() end
-                if data.DistanceGui then data.DistanceGui:Destroy() end
-                espCache[p] = nil
-            end
-        end
-    end
-
-    -- ================= 交互 ESP =================
-    if not espState.Interact then
-        cleanupInteractESP()
-    else
-        -- 每 1.5 秒扫描一次，提升响应速度
-        if tick() - lastInteractScan > 1.5 then
-            lastInteractScan = tick()
-            
+-- 后台扫描线程，不再阻塞主渲染帧
+task.spawn(function()
+    while true do
+        task.wait(1.5) -- 每 1.5 秒扫描一次
+        
+        if not espState.Interact then
+            if next(interactCache) then cleanupInteractESP() end
+        else
             for _, obj in ipairs(workspace:GetDescendants()) do
                 local target = nil
                 
-                if obj:IsA("ClickDetector") then
-                    target = obj.Parent
-                elseif obj:IsA("ProximityPrompt") then
-                    -- 专门针对按 E 交互的 ProximityPrompt 进行精准检测
-                    local parent = obj.Parent
-                    if parent:IsA("Attachment") then
-                        target = parent.Parent -- Attachment 的父级通常是 BasePart
-                    elseif parent:IsA("BasePart") or parent:IsA("Model") then
-                        target = parent
+                -- 1. 精准寻找包含交互组件的主体
+                if obj:IsA("ProximityPrompt") or obj:IsA("ClickDetector") then
+                    local part = obj:FindFirstAncestorWhichIsA("BasePart")
+                    if part then
+                        -- 优先高亮整个模型（比如宝箱），否则只高亮部件
+                        local model = part:FindFirstAncestorWhichIsA("Model")
+                        target = model or part
                     end
                 elseif obj:IsA("Seat") or obj:IsA("VehicleSeat") then
                     target = obj
                 end
                 
-                -- 如果是有效的 BasePart 或 Model，且未在缓存中
-                if target and (target:IsA("BasePart") or target:IsA("Model")) and not interactCache[target] then
+                -- 2. 如果找到了目标，且之前没有挂载过高亮
+                if target and not interactCache[target] then
                     local hl = Instance.new("Highlight")
                     hl.Name = "Interact_Highlight"
-                    hl.FillColor = Color3.fromRGB(0, 255, 100) -- 绿色高亮
+                    hl.FillColor = Color3.fromRGB(0, 255, 100) -- 绿色
                     hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                    hl.FillTransparency = 0.5
+                    hl.FillTransparency = 0.4
                     hl.OutlineTransparency = 0
                     hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                     hl.Parent = target
                     
-                    -- 添加悬浮提示文字，让“按E”的交互更显眼
+                    -- 添加悬浮提示文字
                     local bb = Instance.new("BillboardGui")
                     bb.Name = "Interact_Label"
                     bb.Adornee = target:IsA("Model") and (target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")) or target
-                    if bb.Adornee then
-                        bb.Size = UDim2.new(0, 100, 0, 30)
-                        bb.StudsOffset = Vector3.new(0, 3, 0)
-                        bb.AlwaysOnTop = true
-                        bb.Parent = target
-                        
-                        local text = Instance.new("TextLabel")
-                        text.Text = "[可交互]"
-                        text.BackgroundTransparency = 1
-                        text.Size = UDim2.new(1, 0, 1, 0)
-                        text.Font = Enum.Font.GothamBold
-                        text.TextSize = 14
-                        text.TextColor3 = Color3.fromRGB(0, 255, 100)
-                        text.TextStrokeTransparency = 0
-                        text.Parent = bb
-                        
-                        interactCache[target] = {Highlight = hl, Label = bb}
-                    else
-                        interactCache[target] = {Highlight = hl}
-                    end
+                    bb.Size = UDim2.new(0, 120, 0, 30)
+                    bb.StudsOffset = Vector3.new(0, 4, 0)
+                    bb.AlwaysOnTop = true
+                    bb.Parent = target
+                    
+                    local text = Instance.new("TextLabel")
+                    text.Text = "[可交互]"
+                    text.BackgroundTransparency = 1
+                    text.Size = UDim2.new(1, 0, 1, 0)
+                    text.Font = Enum.Font.GothamBold
+                    text.TextSize = 14
+                    text.TextColor3 = Color3.fromRGB(0, 255, 100)
+                    text.TextStrokeTransparency = 0
+                    text.Parent = bb
+                    
+                    interactCache[target] = {Highlight = hl, Label = bb}
+                    print("[交互ESP] 成功标记: " .. target:GetFullName())
                 end
             end
             
-            -- 清理已经被销毁的目标
+            -- 3. 清理已经被销毁的目标
             for target, data in pairs(interactCache) do
                 if not target.Parent then
                     if data.Highlight then data.Highlight:Destroy() end
@@ -683,6 +549,136 @@ RunService.RenderStepped:Connect(function()
                     interactCache[target] = nil
                 end
             end
+        end
+    end
+end)
+
+-- ========== 玩家 ESP 渲染循环 ==========
+RunService.RenderStepped:Connect(function()
+    if not (espState.Highlight or espState.Name or espState.Line) then
+        cleanupESP()
+        return
+    end
+
+    local localPlayer = Players.LocalPlayer
+    local localChar = localPlayer.Character
+    local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
+
+    for _, targetPlayer in ipairs(Players:GetPlayers()) do
+        if targetPlayer ~= localPlayer then
+            local char = targetPlayer.Character
+            local head = char and char:FindFirstChild("Head")
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+
+            if head and root and humanoid and humanoid.Health > 0 then
+                if not espCache[targetPlayer] then
+                    espCache[targetPlayer] = {}
+                end
+                local data = espCache[targetPlayer]
+
+                -- 1. 高亮
+                if espState.Highlight then
+                    if not data.Highlight or not data.Highlight.Parent then
+                        local hl = Instance.new("Highlight")
+                        hl.Name = "ESP_Highlight"
+                        hl.FillColor = Color3.fromRGB(0, 150, 255)
+                        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                        hl.FillTransparency = 0.5
+                        hl.OutlineTransparency = 0
+                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        hl.Parent = char
+                        data.Highlight = hl
+                    end
+                else
+                    if data.Highlight then data.Highlight:Destroy() data.Highlight = nil end
+                end
+
+                -- 2. 用户名
+                if espState.Name then
+                    if not data.Billboard or not data.Billboard.Parent then
+                        local bb = Instance.new("BillboardGui")
+                        bb.Name = "ESP_Name"
+                        bb.Adornee = head
+                        bb.Size = UDim2.new(0, 200, 0, 50)
+                        bb.StudsOffset = Vector3.new(0, 2.5, 0)
+                        bb.AlwaysOnTop = true
+                        bb.Parent = head
+                        
+                        local textLabel = Instance.new("TextLabel")
+                        textLabel.Name = "NameLabel"
+                        textLabel.BackgroundTransparency = 1
+                        textLabel.Size = UDim2.new(1, 0, 1, 0)
+                        textLabel.Font = Enum.Font.GothamBold
+                        textLabel.TextSize = 16
+                        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        textLabel.TextStrokeTransparency = 0
+                        textLabel.Text = targetPlayer.Name
+                        textLabel.Parent = bb
+                        
+                        data.Billboard = bb
+                        data.NameLabel = textLabel
+                    end
+                    if data.NameLabel then data.NameLabel.Text = targetPlayer.Name end
+                else
+                    if data.Billboard then data.Billboard:Destroy() data.Billboard = nil data.NameLabel = nil end
+                end
+
+                -- 3. 距离
+                if espState.Line then
+                    if localRoot then
+                        local distance = (root.Position - localRoot.Position).Magnitude
+                        if not data.Line or not data.Line.Parent then
+                            local line = Instance.new("LineHandleAdornment")
+                            line.Name = "ESP_Line"
+                            line.Adornee = root
+                            line.Thickness = 2
+                            line.Color3 = Color3.fromRGB(0, 150, 255)
+                            line.Transparency = 0.4
+                            line.ZIndex = 1
+                            line.Parent = root
+                            data.Line = line
+                            
+                            local distBb = Instance.new("BillboardGui")
+                            distBb.Name = "ESP_Distance"
+                            distBb.Adornee = root
+                            distBb.Size = UDim2.new(0, 100, 0, 20)
+                            distBb.StudsOffset = Vector3.new(0, -2.5, 0)
+                            distBb.AlwaysOnTop = true
+                            distBb.Parent = root
+                            
+                            local distLabel = Instance.new("TextLabel")
+                            distLabel.BackgroundTransparency = 1
+                            distLabel.Size = UDim2.new(1, 0, 1, 0)
+                            distLabel.Font = Enum.Font.GothamBold
+                            distLabel.TextSize = 14
+                            distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            distLabel.TextStrokeTransparency = 0
+                            distLabel.Text = string.format("%d m", distance)
+                            distLabel.Parent = distBb
+                            
+                            data.DistanceGui = distBb
+                            data.DistanceLabel = distLabel
+                        end
+                        if data.DistanceLabel then data.DistanceLabel.Text = string.format("%d m", distance) end
+                    end
+                else
+                    if data.Line then data.Line:Destroy() data.Line = nil end
+                    if data.DistanceGui then data.DistanceGui:Destroy() data.DistanceGui = nil end
+                    if data.DistanceLabel then data.DistanceLabel:Destroy() data.DistanceLabel = nil end
+                end
+            end
+        end
+    end
+
+    -- 清理死亡/离开的玩家
+    for p, data in pairs(espCache) do
+        if not p.Parent or not p.Character or not p.Character:FindFirstChild("Humanoid") or p.Character.Humanoid.Health <= 0 then
+            if data.Highlight then data.Highlight:Destroy() end
+            if data.Billboard then data.Billboard:Destroy() end
+            if data.Line then data.Line:Destroy() end
+            if data.DistanceGui then data.DistanceGui:Destroy() end
+            espCache[p] = nil
         end
     end
 end)
