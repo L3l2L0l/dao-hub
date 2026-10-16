@@ -123,34 +123,35 @@ titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 左侧功能区（统一在这里排列按钮） ==========
+-- ========== 左侧功能区 ==========
 local leftPanel = Instance.new("Frame")
 leftPanel.Name = "LeftPanel"
 leftPanel.BackgroundTransparency = 1
-leftPanel.Size = UDim2.new(0, 100, 1, -50) -- 高度从顶部栏下方一直延伸到最底部
-leftPanel.Position = UDim2.new(0, 0, 0, 50)
+leftPanel.Size = UDim2.new(0, 100, 1, -50) -- 宽度 100，高度从顶部栏下方一直延伸到底部
+leftPanel.Position = UDim2.new(0, 0, 0, 50) -- 紧贴顶部栏下方
 leftPanel.Parent = main
 
--- 左侧右侧的贯穿蓝线
+-- 左侧右侧的贯穿蓝线（紧贴面板最右侧，也就是与按钮右侧相切）
 local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
 blueLine.Size = UDim2.new(0, 2, 1, 0)
-blueLine.Position = UDim2.new(1, -2, 0, 0)
+blueLine.Position = UDim2.new(1, -2, 0, 0) -- 位于 leftPanel 最右边缘
 blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = leftPanel
 
--- 统一列表布局，设置间隔为 10px
+-- 统一列表布局，设置为左对齐
 local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 10)
-listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left -- 关键修改：左对齐
 listLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = leftPanel
 
--- 顶部留白
+-- 边距设置：顶到最上面（0），左边距 10px
 local listPadding = Instance.new("UIPadding")
-listPadding.PaddingTop = UDim.new(0, 15)
+listPadding.PaddingTop = UDim.new(0, 0) -- 关键修改：顶到最上面分割线下面
+listPadding.PaddingLeft = UDim.new(0, 10) -- 左侧留出 10px 边距，贴合窗口左边
 listPadding.Parent = leftPanel
 
 -- ESP 按钮
@@ -187,7 +188,7 @@ local visionBtnCorner = Instance.new("UICorner")
 visionBtnCorner.CornerRadius = UDim.new(0, 6)
 visionBtnCorner.Parent = visionButton
 
--- Setting 按钮（现在完全按顺序排列在视觉下方，间距 10px）
+-- Setting 按钮
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -643,8 +644,7 @@ task.spawn(function()
                     end
                     
                     if targetPart and not interactCache[targetPart] then
-                        -- 极度严格：只有当部件最大尺寸不超过 15 时才高亮（宝箱大小通常小于10）
-                        -- 这样哪怕提示挂在地板或墙壁上，也不会全屏变绿
+                        -- 极度严格：只有当部件长宽高均不超过 15 时才高亮
                         local size = targetPart.Size
                         local isSmallEnough = (size.X <= 15 and size.Y <= 15 and size.Z <= 15)
                         
