@@ -10,11 +10,22 @@ local Lighting = game:GetService("Lighting")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- 防止重复生成
-local old = playerGui:FindFirstChild("ResizableUISystem")
-if old then
-    old:Destroy()
+-- ========== 绝对彻底的 UI 清理（防止重叠残留） ==========
+for _, gui in ipairs(playerGui:GetChildren()) do
+    if gui.Name == "ResizableUISystem" then
+        gui:Destroy()
+    end
 end
+
+pcall(function()
+    local CoreGui = game:GetService("CoreGui")
+    for _, gui in ipairs(CoreGui:GetChildren()) do
+        if gui.Name == "ResizableUISystem" then
+            gui:Destroy()
+        end
+    end
+end)
+
 -- 清理可能残留的视觉滤镜
 local oldEffect = Lighting:FindFirstChild("Vision_Highlight")
 if oldEffect then oldEffect:Destroy() end
@@ -782,7 +793,7 @@ visionButton.MouseButton1Click:Connect(function() switchPage(visionPage, visionB
 generalButton.MouseButton1Click:Connect(function() switchPage(generalPage, generalButton) end)
 settingButton.MouseButton1Click:Connect(function() switchPage(settingPage, settingButton) end)
 
--- 核心修复：UI 初始化完成后，立即显示 ESP 页面，不再留下空白和残留文字
+-- 核心修复：UI 初始化完成后，立即显示 ESP 页面
 switchPage(espPage, espButton)
 
 -- ========== 核心玩家 ESP 逻辑 ==========
@@ -1065,4 +1076,4 @@ task.delay(5, function()
     notification:Destroy()
 end)
 
-print("✅ UI 已加载并初始化显示 ESP 页面，设备类型：" .. deviceText)
+print("✅ UI 已加载并彻底清理残留，设备类型：" .. deviceText)
