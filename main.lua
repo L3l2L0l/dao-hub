@@ -16,7 +16,6 @@ for _, gui in ipairs(playerGui:GetChildren()) do
         gui:Destroy()
     end
 end
-
 pcall(function()
     local CoreGui = game:GetService("CoreGui")
     for _, gui in ipairs(CoreGui:GetChildren()) do
@@ -25,8 +24,6 @@ pcall(function()
         end
     end
 end)
-
--- 清理可能残留的视觉滤镜
 local oldEffect = Lighting:FindFirstChild("Vision_Highlight")
 if oldEffect then oldEffect:Destroy() end
 
@@ -136,9 +133,7 @@ blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = main
 
--- ========== 左侧功能按钮（严格 Y + 46 递增） ==========
-
--- ESP 按钮（Y=50）
+-- ========== 左侧功能按钮 ==========
 local espButton = Instance.new("TextButton")
 espButton.Name = "ESPButton"
 espButton.Text = "ESP"
@@ -150,12 +145,8 @@ espButton.BorderSizePixel = 0
 espButton.Size = UDim2.new(0, 80, 0, 36)
 espButton.Position = UDim2.new(0, 0, 0, 50)
 espButton.Parent = main
+local espBtnCorner = Instance.new("UICorner") espBtnCorner.CornerRadius = UDim.new(0, 6) espBtnCorner.Parent = espButton
 
-local espBtnCorner = Instance.new("UICorner")
-espBtnCorner.CornerRadius = UDim.new(0, 6)
-espBtnCorner.Parent = espButton
-
--- 视觉按钮（Y=96）
 local visionButton = Instance.new("TextButton")
 visionButton.Name = "VisionButton"
 visionButton.Text = "视觉"
@@ -167,12 +158,8 @@ visionButton.BorderSizePixel = 0
 visionButton.Size = UDim2.new(0, 80, 0, 36)
 visionButton.Position = UDim2.new(0, 0, 0, 96)
 visionButton.Parent = main
+local visionBtnCorner = Instance.new("UICorner") visionBtnCorner.CornerRadius = UDim.new(0, 6) visionBtnCorner.Parent = visionButton
 
-local visionBtnCorner = Instance.new("UICorner")
-visionBtnCorner.CornerRadius = UDim.new(0, 6)
-visionBtnCorner.Parent = visionButton
-
--- 通用按钮（Y=142）
 local generalButton = Instance.new("TextButton")
 generalButton.Name = "GeneralButton"
 generalButton.Text = "通用"
@@ -184,12 +171,8 @@ generalButton.BorderSizePixel = 0
 generalButton.Size = UDim2.new(0, 80, 0, 36)
 generalButton.Position = UDim2.new(0, 0, 0, 142) 
 generalButton.Parent = main
+local generalBtnCorner = Instance.new("UICorner") generalBtnCorner.CornerRadius = UDim.new(0, 6) generalBtnCorner.Parent = generalButton
 
-local generalBtnCorner = Instance.new("UICorner")
-generalBtnCorner.CornerRadius = UDim.new(0, 6)
-generalBtnCorner.Parent = generalButton
-
--- Setting 按钮（Y=188）
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -201,10 +184,7 @@ settingButton.BorderSizePixel = 0
 settingButton.Size = UDim2.new(0, 80, 0, 36)
 settingButton.Position = UDim2.new(0, 0, 0, 188)
 settingButton.Parent = main
-
-local settingBtnCorner = Instance.new("UICorner")
-settingBtnCorner.CornerRadius = UDim.new(0, 6)
-settingBtnCorner.Parent = settingButton
+local settingBtnCorner = Instance.new("UICorner") settingBtnCorner.CornerRadius = UDim.new(0, 6) settingBtnCorner.Parent = settingButton
 
 -- ========== 右侧内容区域 ==========
 local content = Instance.new("Frame")
@@ -239,10 +219,7 @@ espList.BackgroundTransparency = 1
 espList.Position = UDim2.new(0, 0, 0, 40)
 espList.Size = UDim2.new(1, 0, 0, 150)
 espList.Parent = espPage
-
-local espLayout = Instance.new("UIListLayout")
-espLayout.Padding = UDim.new(0, 10)
-espLayout.Parent = espList
+local espLayout = Instance.new("UIListLayout") espLayout.Padding = UDim.new(0, 10) espLayout.Parent = espList
 
 local interactTitle = Instance.new("TextLabel")
 interactTitle.Text = "交互 ESP"
@@ -262,10 +239,7 @@ interactList.BackgroundTransparency = 1
 interactList.Position = UDim2.new(0, 0, 0, 240)
 interactList.Size = UDim2.new(1, 0, 0, 100)
 interactList.Parent = espPage
-
-local interactLayout = Instance.new("UIListLayout")
-interactLayout.Padding = UDim.new(0, 10)
-interactLayout.Parent = interactList
+local interactLayout = Instance.new("UIListLayout") interactLayout.Padding = UDim.new(0, 10) interactLayout.Parent = interactList
 
 -- ========== 视觉页面 ==========
 local visionPage = Instance.new("Frame")
@@ -292,10 +266,7 @@ visionList.BackgroundTransparency = 1
 visionList.Position = UDim2.new(0, 0, 0, 50)
 visionList.Size = UDim2.new(1, 0, 1, -50)
 visionList.Parent = visionPage
-
-local visionLayout = Instance.new("UIListLayout")
-visionLayout.Padding = UDim.new(0, 12)
-visionLayout.Parent = visionList
+local visionLayout = Instance.new("UIListLayout") visionLayout.Padding = UDim.new(0, 12) visionLayout.Parent = visionList
 
 -- ========== 通用页面 ==========
 local generalPage = Instance.new("Frame")
@@ -322,10 +293,7 @@ generalList.BackgroundTransparency = 1
 generalList.Position = UDim2.new(0, 0, 0, 50)
 generalList.Size = UDim2.new(1, 0, 1, -50)
 generalList.Parent = generalPage
-
-local generalLayout = Instance.new("UIListLayout")
-generalLayout.Padding = UDim.new(0, 12)
-generalLayout.Parent = generalList
+local generalLayout = Instance.new("UIListLayout") generalLayout.Padding = UDim.new(0, 12) generalLayout.Parent = generalList
 
 -- 状态表
 local espState = { Highlight = false, Name = false, Line = false, Interact = false }
@@ -346,9 +314,7 @@ local function createToggleButton(parent, text, key, onColor, customState)
     btn.Size = UDim2.new(0, 200, 0, 38)
     btn.Parent = parent
 
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
+    local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 6) corner.Parent = btn
 
     btn.MouseButton1Click:Connect(function()
         stateTable[key] = not stateTable[key]
@@ -359,69 +325,29 @@ local function createToggleButton(parent, text, key, onColor, customState)
             btn.Text = text .. "：关"
             btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
         end
-        
         if key == "Fly" and updateFly then updateFly() end
         if key == "AntiFling" and updateAntiFling then updateAntiFling() end
         if (key == "HighlightMode" or key == "RemoveDarkness") and updateVisuals then updateVisuals() end
     end)
 end
 
--- 创建玩家 ESP 按钮
 createToggleButton(espList, "高亮显示玩家", "Highlight", Color3.fromRGB(0, 120, 255))
 createToggleButton(espList, "显示玩家用户名", "Name", Color3.fromRGB(0, 120, 255))
 createToggleButton(espList, "显示距离射线", "Line", Color3.fromRGB(0, 120, 255))
 createToggleButton(interactList, "高亮可交互目标", "Interact", Color3.fromRGB(0, 200, 80))
-
--- 视觉页面按钮
 createToggleButton(visionList, "开启高亮模式", "HighlightMode", Color3.fromRGB(255, 180, 0))
 createToggleButton(visionList, "删除地图黑暗效果", "RemoveDarkness", Color3.fromRGB(255, 100, 100))
 
 -- ========== 通用功能逻辑构建 ==========
--- 1. 修改行走速度与跳跃高度
 local function createSpeedInput(parent, labelText, defaultValue, callback)
-    local container = Instance.new("Frame")
-    container.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-    container.BorderSizePixel = 0
-    container.Size = UDim2.new(0, 320, 0, 50)
-    container.Parent = parent
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = container
-
-    local label = Instance.new("TextLabel")
-    label.Text = labelText
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 16
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.BackgroundTransparency = 1
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Size = UDim2.new(0.5, 0, 1, 0)
-    label.Position = UDim2.new(0, 15, 0, 0)
-    label.Parent = container
-
-    local box = Instance.new("TextBox")
-    box.Text = tostring(defaultValue)
-    box.Font = Enum.Font.GothamBold
-    box.TextSize = 16
-    box.TextColor3 = Color3.fromRGB(255, 255, 255)
-    box.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    box.BorderSizePixel = 0
-    box.Size = UDim2.new(0, 80, 0, 34)
-    box.Position = UDim2.new(1, -95, 0.5, -17)
-    box.Parent = container
-
-    local boxCorner = Instance.new("UICorner")
-    boxCorner.CornerRadius = UDim.new(0, 6)
-    boxCorner.Parent = box
-
+    local container = Instance.new("Frame") container.BackgroundColor3 = Color3.fromRGB(30, 30, 36) container.BorderSizePixel = 0 container.Size = UDim2.new(0, 320, 0, 50) container.Parent = parent
+    local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0, 8) corner.Parent = container
+    local label = Instance.new("TextLabel") label.Text = labelText label.Font = Enum.Font.GothamBold label.TextSize = 16 label.TextColor3 = Color3.fromRGB(255, 255, 255) label.BackgroundTransparency = 1 label.TextXAlignment = Enum.TextXAlignment.Left label.Size = UDim2.new(0.5, 0, 1, 0) label.Position = UDim2.new(0, 15, 0, 0) label.Parent = container
+    local box = Instance.new("TextBox") box.Text = tostring(defaultValue) box.Font = Enum.Font.GothamBold box.TextSize = 16 box.TextColor3 = Color3.fromRGB(255, 255, 255) box.BackgroundColor3 = Color3.fromRGB(50, 50, 60) box.BorderSizePixel = 0 box.Size = UDim2.new(0, 80, 0, 34) box.Position = UDim2.new(1, -95, 0.5, -17) box.Parent = container
+    local boxCorner = Instance.new("UICorner") boxCorner.CornerRadius = UDim.new(0, 6) boxCorner.Parent = box
     box.FocusLost:Connect(function()
         local num = tonumber(box.Text)
-        if num then
-            callback(num)
-        else
-            box.Text = tostring(defaultValue)
-        end
+        if num then callback(num) else box.Text = tostring(defaultValue) end
     end)
 end
 
@@ -430,7 +356,6 @@ createSpeedInput(generalList, "行走速度", 16, function(val)
         player.Character.Humanoid.WalkSpeed = val
     end
 end)
-
 createSpeedInput(generalList, "跳跃高度", 50, function(val)
     if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
         player.Character.Humanoid.UseJumpPower = true
@@ -438,34 +363,16 @@ createSpeedInput(generalList, "跳跃高度", 50, function(val)
     end
 end)
 
--- 2. 飞行、甩飞、防甩飞按钮
-local flyBtn = Instance.new("TextButton")
-flyBtn.Name = "FlyToggle"
-flyBtn.Text = "飞行：关"
-flyBtn.TextSize = 16
-flyBtn.Font = Enum.Font.GothamBold
-flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-flyBtn.BorderSizePixel = 0
-flyBtn.Size = UDim2.new(0, 200, 0, 38)
-flyBtn.Parent = generalList
-
-local flyCorner = Instance.new("UICorner")
-flyCorner.CornerRadius = UDim.new(0, 6)
-flyCorner.Parent = flyBtn
-
+local flyBtn = Instance.new("TextButton") flyBtn.Name = "FlyToggle" flyBtn.Text = "飞行：关" flyBtn.TextSize = 16 flyBtn.Font = Enum.Font.GothamBold flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255) flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) flyBtn.BorderSizePixel = 0 flyBtn.Size = UDim2.new(0, 200, 0, 38) flyBtn.Parent = generalList
+local flyCorner = Instance.new("UICorner") flyCorner.CornerRadius = UDim.new(0, 6) flyCorner.Parent = flyBtn
 flyBtn.MouseButton1Click:Connect(function()
     generalState.Fly = not generalState.Fly
-    if generalState.Fly then
-        flyBtn.Text = "飞行：开"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
-    else
-        flyBtn.Text = "飞行：关"
-        flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    end
+    if generalState.Fly then flyBtn.Text = "飞行：开" flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    else flyBtn.Text = "飞行：关" flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) end
     if updateFly then updateFly() end
 end)
 
+-- ⭐️ 关键修改：强化版的“执行甩飞”按钮逻辑 ⭐️
 local flingBtn = Instance.new("TextButton")
 flingBtn.Name = "FlingButton"
 flingBtn.Text = "执行甩飞"
@@ -476,21 +383,33 @@ flingBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 flingBtn.BorderSizePixel = 0
 flingBtn.Size = UDim2.new(0, 200, 0, 38)
 flingBtn.Parent = generalList
-
-local flingCorner = Instance.new("UICorner")
-flingCorner.CornerRadius = UDim.new(0, 6)
-flingCorner.Parent = flingBtn
+local flingCorner = Instance.new("UICorner") flingCorner.CornerRadius = UDim.new(0, 6) flingCorner.Parent = flingBtn
 
 flingBtn.MouseButton1Click:Connect(function()
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = p.Character.HumanoidRootPart
             pcall(function()
+                -- 1. 核心：尝试强行夺取网络所有权（把物理控制权交给自己）
+                hrp:SetNetworkOwner(player)
+                
+                -- 2. 施加强烈的旋转力
                 local bv = Instance.new("BodyAngularVelocity")
-                bv.AngularVelocity = Vector3.new(0, 99999, 0)
-                bv.MaxTorque = Vector3.new(99999, 99999, 99999)
+                bv.AngularVelocity = Vector3.new(0, 999999, 0)
+                bv.MaxTorque = Vector3.new(999999, 999999, 999999)
                 bv.Parent = hrp
-                task.delay(0.5, function() bv:Destroy() end)
+                
+                -- 3. 施加向上的线速度，让他们飞起来
+                local bv2 = Instance.new("BodyVelocity")
+                bv2.Velocity = Vector3.new(math.random(-500, 500), 500, math.random(-500, 500))
+                bv2.MaxForce = Vector3.new(999999, 999999, 999999)
+                bv2.Parent = hrp
+
+                -- 4. 1秒后销毁力，防止游戏永久卡死
+                task.delay(1, function() 
+                    if bv then bv:Destroy() end 
+                    if bv2 then bv2:Destroy() end
+                end)
             end)
         end
     end
@@ -499,10 +418,7 @@ end)
 createToggleButton(generalList, "防甩飞", "AntiFling", Color3.fromRGB(255, 150, 0), generalState)
 
 -- ========== 核心通用逻辑实现 ==========
-local flyBodyVelocity = nil
-local flyBodyGyro = nil
-local flyConnection = nil
-
+local flyBodyVelocity = nil local flyBodyGyro = nil local flyConnection = nil
 updateFly = function()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -510,35 +426,21 @@ updateFly = function()
 
     if generalState.Fly then
         if not flyBodyVelocity then
-            flyBodyVelocity = Instance.new("BodyVelocity")
-            flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            flyBodyVelocity.Parent = hrp
-
-            flyBodyGyro = Instance.new("BodyGyro")
-            flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-            flyBodyGyro.P = 1000
-            flyBodyGyro.Parent = hrp
+            flyBodyVelocity = Instance.new("BodyVelocity") flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5) flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) flyBodyVelocity.Parent = hrp
+            flyBodyGyro = Instance.new("BodyGyro") flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5) flyBodyGyro.P = 1000 flyBodyGyro.Parent = hrp
         end
-
         if flyConnection then flyConnection:Disconnect() end
         flyConnection = RunService.RenderStepped:Connect(function()
             if not generalState.Fly or not char.Parent then return end
             local camera = workspace.CurrentCamera
             local moveDirection = Vector3.new(0, 0, 0)
-
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0, 1, 0) end
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection -= Vector3.new(0, 1, 0) end
-
-            if moveDirection.Magnitude > 0 then
-                flyBodyVelocity.Velocity = moveDirection.Unit * 60
-            else
-                flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            end
+            if moveDirection.Magnitude > 0 then flyBodyVelocity.Velocity = moveDirection.Unit * 60 else flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end
             flyBodyGyro.CFrame = camera.CFrame
         end)
     else
@@ -547,11 +449,7 @@ updateFly = function()
         if flyConnection then flyConnection:Disconnect() flyConnection = nil end
     end
 end
-
-player.CharacterAdded:Connect(function()
-    task.wait(1)
-    if generalState.Fly then updateFly() end
-end)
+player.CharacterAdded:Connect(function() task.wait(1) if generalState.Fly then updateFly() end end)
 
 local antiFlingConnection = nil
 updateAntiFling = function()
@@ -561,12 +459,8 @@ updateAntiFling = function()
             local char = player.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
-                if hrp.AssemblyAngularVelocity.Magnitude > 100 then
-                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                end
-                if hrp.AssemblyLinearVelocity.Magnitude > 500 then
-                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                end
+                if hrp.AssemblyAngularVelocity.Magnitude > 100 then hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0) end
+                if hrp.AssemblyLinearVelocity.Magnitude > 500 then hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0) end
             end
         end)
     else
@@ -577,48 +471,28 @@ end
 -- ========== 视觉核心逻辑 ==========
 local highlightEffect = nil
 local originalLighting = { Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil }
-
 updateVisuals = function()
     if visualState.HighlightMode then
         if not highlightEffect or not highlightEffect.Parent then
             highlightEffect = Instance.new("ColorCorrectionEffect")
             highlightEffect.Name = "Vision_Highlight"
-            highlightEffect.Brightness = 0.3
-            highlightEffect.Contrast = 0.2
-            highlightEffect.Saturation = 0.1
+            highlightEffect.Brightness = 0.3 highlightEffect.Contrast = 0.2 highlightEffect.Saturation = 0.1
             highlightEffect.Parent = Lighting
         end
     else
-        if highlightEffect then
-            highlightEffect:Destroy()
-            highlightEffect = nil
-        end
+        if highlightEffect then highlightEffect:Destroy() highlightEffect = nil end
     end
-
     if visualState.RemoveDarkness then
         if not originalLighting.Brightness then
-            originalLighting.Brightness = Lighting.Brightness
-            originalLighting.Ambient = Lighting.Ambient
-            originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
-            originalLighting.ClockTime = Lighting.ClockTime
-            originalLighting.FogEnd = Lighting.FogEnd
+            originalLighting.Brightness = Lighting.Brightness originalLighting.Ambient = Lighting.Ambient originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient originalLighting.ClockTime = Lighting.ClockTime originalLighting.FogEnd = Lighting.FogEnd
         end
-        
         pcall(function()
-            Lighting.Brightness = 2
-            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-            Lighting.ClockTime = 14
-            Lighting.FogEnd = 100000
+            Lighting.Brightness = 2 Lighting.Ambient = Color3.fromRGB(255, 255, 255) Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) Lighting.ClockTime = 14 Lighting.FogEnd = 100000
         end)
     else
         if originalLighting.Brightness then
             pcall(function()
-                Lighting.Brightness = originalLighting.Brightness
-                Lighting.Ambient = originalLighting.Ambient
-                Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
-                Lighting.ClockTime = originalLighting.ClockTime
-                Lighting.FogEnd = originalLighting.FogEnd
+                Lighting.Brightness = originalLighting.Brightness Lighting.Ambient = originalLighting.Ambient Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient Lighting.ClockTime = originalLighting.ClockTime Lighting.FogEnd = originalLighting.FogEnd
             end)
             originalLighting = { Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil }
         end
@@ -626,139 +500,35 @@ updateVisuals = function()
 end
 
 -- ========== 设置页面 ==========
-local settingPage = Instance.new("Frame")
-settingPage.Name = "SettingPage"
-settingPage.BackgroundTransparency = 1
-settingPage.Size = UDim2.new(1, 0, 1, 0)
-settingPage.Visible = false
-settingPage.Parent = content
+local settingPage = Instance.new("Frame") settingPage.Name = "SettingPage" settingPage.BackgroundTransparency = 1 settingPage.Size = UDim2.new(1, 0, 1, 0) settingPage.Visible = false settingPage.Parent = content
+local settingTitle = Instance.new("TextLabel") settingTitle.Text = "设置" settingTitle.BackgroundTransparency = 1 settingTitle.TextColor3 = Color3.fromRGB(255, 255, 255) settingTitle.TextSize = 24 settingTitle.Font = Enum.Font.GothamBold settingTitle.TextXAlignment = Enum.TextXAlignment.Left settingTitle.TextStrokeTransparency = 0.5 settingTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) settingTitle.Size = UDim2.new(1, 0, 0, 36) settingTitle.Parent = settingPage
+local settingList = Instance.new("Frame") settingList.BackgroundTransparency = 1 settingList.Position = UDim2.new(0, 0, 0, 50) settingList.Size = UDim2.new(1, 0, 1, -50) settingList.Parent = settingPage
+local settingLayout = Instance.new("UIListLayout") settingLayout.Padding = UDim.new(0, 15) settingLayout.Parent = settingList
 
-local settingTitle = Instance.new("TextLabel")
-settingTitle.Text = "设置"
-settingTitle.BackgroundTransparency = 1
-settingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-settingTitle.TextSize = 24
-settingTitle.Font = Enum.Font.GothamBold
-settingTitle.TextXAlignment = Enum.TextXAlignment.Left
-settingTitle.TextStrokeTransparency = 0.5
-settingTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-settingTitle.Size = UDim2.new(1, 0, 0, 36)
-settingTitle.Parent = settingPage
-
-local settingList = Instance.new("Frame")
-settingList.BackgroundTransparency = 1
-settingList.Position = UDim2.new(0, 0, 0, 50)
-settingList.Size = UDim2.new(1, 0, 1, -50)
-settingList.Parent = settingPage
-
-local settingLayout = Instance.new("UIListLayout")
-settingLayout.Padding = UDim.new(0, 15)
-settingLayout.Parent = settingList
-
--- 快捷键设置
-local keyContainer = Instance.new("Frame")
-keyContainer.Name = "KeybindContainer"
-keyContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-keyContainer.BorderSizePixel = 0
-keyContainer.Size = UDim2.new(0, 320, 0, 60)
-keyContainer.Parent = settingList
-
-local keyContainerCorner = Instance.new("UICorner")
-keyContainerCorner.CornerRadius = UDim.new(0, 8)
-keyContainerCorner.Parent = keyContainer
-
-local keyLabel = Instance.new("TextLabel")
-keyLabel.Text = "开关快捷键"
-keyLabel.Font = Enum.Font.GothamBold
-keyLabel.TextSize = 16
-keyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-keyLabel.BackgroundTransparency = 1
-keyLabel.TextXAlignment = Enum.TextXAlignment.Left
-keyLabel.Size = UDim2.new(0.5, 0, 1, 0)
-keyLabel.Position = UDim2.new(0, 15, 0, 0)
-keyLabel.Parent = keyContainer
-
-local keyBox = Instance.new("TextBox")
-keyBox.Name = "KeyInput"
-keyBox.Text = "G"
-keyBox.Font = Enum.Font.GothamBold
-keyBox.TextSize = 16
-keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-keyBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-keyBox.BorderSizePixel = 0
-keyBox.Size = UDim2.new(0, 80, 0, 34)
-keyBox.Position = UDim2.new(1, -95, 0.5, -17)
-keyBox.Parent = keyContainer
-
-local keyBoxCorner = Instance.new("UICorner")
-keyBoxCorner.CornerRadius = UDim.new(0, 6)
-keyBoxCorner.Parent = keyBox
-
+local keyContainer = Instance.new("Frame") keyContainer.Name = "KeybindContainer" keyContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 36) keyContainer.BorderSizePixel = 0 keyContainer.Size = UDim2.new(0, 320, 0, 60) keyContainer.Parent = settingList
+local keyContainerCorner = Instance.new("UICorner") keyContainerCorner.CornerRadius = UDim.new(0, 8) keyContainerCorner.Parent = keyContainer
+local keyLabel = Instance.new("TextLabel") keyLabel.Text = "开关快捷键" keyLabel.Font = Enum.Font.GothamBold keyLabel.TextSize = 16 keyLabel.TextColor3 = Color3.fromRGB(255, 255, 255) keyLabel.BackgroundTransparency = 1 keyLabel.TextXAlignment = Enum.TextXAlignment.Left keyLabel.Size = UDim2.new(0.5, 0, 1, 0) keyLabel.Position = UDim2.new(0, 15, 0, 0) keyLabel.Parent = keyContainer
+local keyBox = Instance.new("TextBox") keyBox.Name = "KeyInput" keyBox.Text = "G" keyBox.Font = Enum.Font.GothamBold keyBox.TextSize = 16 keyBox.TextColor3 = Color3.fromRGB(255, 255, 255) keyBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60) keyBox.BorderSizePixel = 0 keyBox.Size = UDim2.new(0, 80, 0, 34) keyBox.Position = UDim2.new(1, -95, 0.5, -17) keyBox.Parent = keyContainer
+local keyBoxCorner = Instance.new("UICorner") keyBoxCorner.CornerRadius = UDim.new(0, 6) keyBoxCorner.Parent = keyBox
 keyBox.FocusLost:Connect(function()
     local inputText = string.upper(keyBox.Text)
-    if inputText == "" then
-        keyBox.Text = string.upper(currentToggleKey.Name)
-        return
-    end
-    
-    local success, keyCode = pcall(function()
-        return Enum.KeyCode[inputText]
-    end)
-    
-    if success and keyCode then
-        currentToggleKey = keyCode
-        keyBox.Text = inputText
-    else
-        keyBox.Text = string.upper(currentToggleKey.Name)
-    end
+    if inputText == "" then keyBox.Text = string.upper(currentToggleKey.Name) return end
+    local success, keyCode = pcall(function() return Enum.KeyCode[inputText] end)
+    if success and keyCode then currentToggleKey = keyCode keyBox.Text = inputText
+    else keyBox.Text = string.upper(currentToggleKey.Name) end
 end)
 
 -- ========== 屏幕上方居中悬浮窗 ==========
-local minimizedUi = Instance.new("Frame")
-minimizedUi.Name = "MinimizedUI"
-minimizedUi.AnchorPoint = Vector2.new(0.5, 0)
-minimizedUi.Position = UDim2.new(0.5, 0, 0, 20)
-minimizedUi.Size = UDim2.new(0, 120, 0, 40)
-minimizedUi.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-minimizedUi.BorderSizePixel = 0
-minimizedUi.Visible = false
-minimizedUi.Active = true
-minimizedUi.Parent = screenGui
-
-local minimizedCorner = Instance.new("UICorner")
-minimizedCorner.CornerRadius = UDim.new(0, 10)
-minimizedCorner.Parent = minimizedUi
-
-local minimizedStroke = Instance.new("UIStroke")
-minimizedStroke.Color = Color3.fromRGB(100, 100, 120)
-minimizedStroke.Thickness = 1.5
-minimizedStroke.Parent = minimizedUi
-
-local minimizedTitle = Instance.new("TextLabel")
-minimizedTitle.Text = "dao hub"
-minimizedTitle.Font = Enum.Font.GothamBlack
-minimizedTitle.TextSize = 18
-minimizedTitle.BackgroundTransparency = 1
-minimizedTitle.Size = UDim2.new(1, 0, 1, 0)
-minimizedTitle.TextStrokeTransparency = 0.5
-minimizedTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-minimizedTitle.Parent = minimizedUi
-
-local minimizedGradient = Instance.new("UIGradient")
-minimizedGradient.Color = gradient.Color
-minimizedGradient.Parent = minimizedTitle
-
-task.spawn(function()
-    while minimizedTitle.Parent do
-        task.wait(0.05)
-        minimizedGradient.Rotation = (minimizedGradient.Rotation + 2) % 360
-    end
-end)
+local minimizedUi = Instance.new("Frame") minimizedUi.Name = "MinimizedUI" minimizedUi.AnchorPoint = Vector2.new(0.5, 0) minimizedUi.Position = UDim2.new(0.5, 0, 0, 20) minimizedUi.Size = UDim2.new(0, 120, 0, 40) minimizedUi.BackgroundColor3 = Color3.fromRGB(20, 20, 25) minimizedUi.BorderSizePixel = 0 minimizedUi.Visible = false minimizedUi.Active = true minimizedUi.Parent = screenGui
+local minimizedCorner = Instance.new("UICorner") minimizedCorner.CornerRadius = UDim.new(0, 10) minimizedCorner.Parent = minimizedUi
+local minimizedStroke = Instance.new("UIStroke") minimizedStroke.Color = Color3.fromRGB(100, 100, 120) minimizedStroke.Thickness = 1.5 minimizedStroke.Parent = minimizedUi
+local minimizedTitle = Instance.new("TextLabel") minimizedTitle.Text = "dao hub" minimizedTitle.Font = Enum.Font.GothamBlack minimizedTitle.TextSize = 18 minimizedTitle.BackgroundTransparency = 1 minimizedTitle.Size = UDim2.new(1, 0, 1, 0) minimizedTitle.TextStrokeTransparency = 0.5 minimizedTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) minimizedTitle.Parent = minimizedUi
+local minimizedGradient = Instance.new("UIGradient") minimizedGradient.Color = gradient.Color minimizedGradient.Parent = minimizedTitle
+task.spawn(function() while minimizedTitle.Parent do task.wait(0.05) minimizedGradient.Rotation = (minimizedGradient.Rotation + 2) % 360 end end)
 
 -- ========== 快捷键逻辑 ==========
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    
     if input.KeyCode == currentToggleKey then
         local isMainVisible = main.Visible
         main.Visible = not isMainVisible
@@ -767,15 +537,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- ========== 按钮切换逻辑 ==========
-local function resetButton(btn)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    btn.TextColor3 = Color3.fromRGB(200, 200, 210)
-end
-
-local function highlightButton(btn)
-    btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-end
+local function resetButton(btn) btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) btn.TextColor3 = Color3.fromRGB(200, 200, 210) end
+local function highlightButton(btn) btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255) btn.TextColor3 = Color3.fromRGB(255, 255, 255) end
 
 local allButtons = {espButton, visionButton, generalButton, settingButton}
 local allPages = {espPage, visionPage, generalPage, settingPage}
@@ -783,7 +546,6 @@ local allPages = {espPage, visionPage, generalPage, settingPage}
 local function switchPage(pageToShow, btnToHighlight)
     for _, p in ipairs(allPages) do p.Visible = false end
     for _, b in ipairs(allButtons) do resetButton(b) end
-    
     pageToShow.Visible = true
     highlightButton(btnToHighlight)
 end
@@ -793,12 +555,10 @@ visionButton.MouseButton1Click:Connect(function() switchPage(visionPage, visionB
 generalButton.MouseButton1Click:Connect(function() switchPage(generalPage, generalButton) end)
 settingButton.MouseButton1Click:Connect(function() switchPage(settingPage, settingButton) end)
 
--- 核心修复：UI 初始化完成后，立即显示 ESP 页面
 switchPage(espPage, espButton)
 
 -- ========== 核心玩家 ESP 逻辑 ==========
 local espCache = {}
-
 local function cleanupESP()
     for _, data in pairs(espCache) do
         if data.Highlight then data.Highlight:Destroy() end
@@ -811,7 +571,6 @@ end
 
 -- ========== 核心交互 ESP 逻辑 ==========
 local interactCache = {}
-
 local function cleanupInteractESP()
     for _, data in pairs(interactCache) do
         if data.Highlight then data.Highlight:Destroy() end
@@ -823,19 +582,14 @@ end
 task.spawn(function()
     while true do
         task.wait(1.5)
-        
         if not espState.Interact then
             if next(interactCache) then cleanupInteractESP() end
         else
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("ProximityPrompt") then
                     local targetPart = nil
-                    
-                    if obj.Parent:IsA("BasePart") then
-                        targetPart = obj.Parent
-                    elseif obj.Parent:IsA("Attachment") and obj.Parent.Parent:IsA("BasePart") then
-                        targetPart = obj.Parent.Parent
-                    end
+                    if obj.Parent:IsA("BasePart") then targetPart = obj.Parent
+                    elseif obj.Parent:IsA("Attachment") and obj.Parent.Parent:IsA("BasePart") then targetPart = obj.Parent.Parent end
                     
                     if targetPart and not interactCache[targetPart] then
                         local size = targetPart.Size
@@ -844,38 +598,18 @@ task.spawn(function()
                         local hl = nil
                         if isSmallEnough then
                             hl = Instance.new("Highlight")
-                            hl.Name = "Interact_Highlight"
-                            hl.FillColor = Color3.fromRGB(0, 255, 100)
-                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                            hl.FillTransparency = 0.4
-                            hl.OutlineTransparency = 0
-                            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                            hl.Parent = targetPart
+                            hl.Name = "Interact_Highlight" hl.FillColor = Color3.fromRGB(0, 255, 100) hl.OutlineColor = Color3.fromRGB(255, 255, 255) hl.FillTransparency = 0.4 hl.OutlineTransparency = 0 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop hl.Parent = targetPart
                         end
                         
                         local bb = Instance.new("BillboardGui")
-                        bb.Name = "Interact_Label"
-                        bb.Adornee = targetPart
-                        bb.Size = UDim2.new(0, 120, 0, 30)
-                        bb.StudsOffset = Vector3.new(0, 3.5, 0)
-                        bb.AlwaysOnTop = true
-                        bb.Parent = targetPart
+                        bb.Name = "Interact_Label" bb.Adornee = targetPart bb.Size = UDim2.new(0, 120, 0, 30) bb.StudsOffset = Vector3.new(0, 3.5, 0) bb.AlwaysOnTop = true bb.Parent = targetPart
                         
                         local text = Instance.new("TextLabel")
-                        text.Text = "[可交互]"
-                        text.BackgroundTransparency = 1
-                        text.Size = UDim2.new(1, 0, 1, 0)
-                        text.Font = Enum.Font.GothamBold
-                        text.TextSize = 14
-                        text.TextColor3 = Color3.fromRGB(0, 255, 100)
-                        text.TextStrokeTransparency = 0
-                        text.Parent = bb
-                        
+                        text.Text = "[可交互]" text.BackgroundTransparency = 1 text.Size = UDim2.new(1, 0, 1, 0) text.Font = Enum.Font.GothamBold text.TextSize = 14 text.TextColor3 = Color3.fromRGB(0, 255, 100) text.TextStrokeTransparency = 0 text.Parent = bb
                         interactCache[targetPart] = {Highlight = hl, Label = bb}
                     end
                 end
             end
-            
             for target, data in pairs(interactCache) do
                 if not target.Parent then
                     if data.Highlight then data.Highlight:Destroy() end
@@ -890,10 +624,8 @@ end)
 -- ========== 玩家 ESP 渲染循环 ==========
 RunService.RenderStepped:Connect(function()
     if not (espState.Highlight or espState.Name or espState.Line) then
-        cleanupESP()
-        return
+        cleanupESP() return
     end
-
     local localPlayer = Players.LocalPlayer
     local localChar = localPlayer.Character
     local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
@@ -906,22 +638,12 @@ RunService.RenderStepped:Connect(function()
             local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
             if head and root and humanoid and humanoid.Health > 0 then
-                if not espCache[targetPlayer] then
-                    espCache[targetPlayer] = {}
-                end
+                if not espCache[targetPlayer] then espCache[targetPlayer] = {} end
                 local data = espCache[targetPlayer]
 
                 if espState.Highlight then
                     if not data.Highlight or not data.Highlight.Parent then
-                        local hl = Instance.new("Highlight")
-                        hl.Name = "ESP_Highlight"
-                        hl.FillColor = Color3.fromRGB(0, 150, 255)
-                        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                        hl.FillTransparency = 0.5
-                        hl.OutlineTransparency = 0
-                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                        hl.Parent = char
-                        data.Highlight = hl
+                        local hl = Instance.new("Highlight") hl.Name = "ESP_Highlight" hl.FillColor = Color3.fromRGB(0, 150, 255) hl.OutlineColor = Color3.fromRGB(255, 255, 255) hl.FillTransparency = 0.5 hl.OutlineTransparency = 0 hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop hl.Parent = char data.Highlight = hl
                     end
                 else
                     if data.Highlight then data.Highlight:Destroy() data.Highlight = nil end
@@ -929,27 +651,9 @@ RunService.RenderStepped:Connect(function()
 
                 if espState.Name then
                     if not data.Billboard or not data.Billboard.Parent then
-                        local bb = Instance.new("BillboardGui")
-                        bb.Name = "ESP_Name"
-                        bb.Adornee = head
-                        bb.Size = UDim2.new(0, 200, 0, 50)
-                        bb.StudsOffset = Vector3.new(0, 2.5, 0)
-                        bb.AlwaysOnTop = true
-                        bb.Parent = head
-                        
-                        local textLabel = Instance.new("TextLabel")
-                        textLabel.Name = "NameLabel"
-                        textLabel.BackgroundTransparency = 1
-                        textLabel.Size = UDim2.new(1, 0, 1, 0)
-                        textLabel.Font = Enum.Font.GothamBold
-                        textLabel.TextSize = 16
-                        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        textLabel.TextStrokeTransparency = 0
-                        textLabel.Text = targetPlayer.Name
-                        textLabel.Parent = bb
-                        
-                        data.Billboard = bb
-                        data.NameLabel = textLabel
+                        local bb = Instance.new("BillboardGui") bb.Name = "ESP_Name" bb.Adornee = head bb.Size = UDim2.new(0, 200, 0, 50) bb.StudsOffset = Vector3.new(0, 2.5, 0) bb.AlwaysOnTop = true bb.Parent = head
+                        local textLabel = Instance.new("TextLabel") textLabel.Name = "NameLabel" textLabel.BackgroundTransparency = 1 textLabel.Size = UDim2.new(1, 0, 1, 0) textLabel.Font = Enum.Font.GothamBold textLabel.TextSize = 16 textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) textLabel.TextStrokeTransparency = 0 textLabel.Text = targetPlayer.Name textLabel.Parent = bb
+                        data.Billboard = bb data.NameLabel = textLabel
                     end
                     if data.NameLabel then data.NameLabel.Text = targetPlayer.Name end
                 else
@@ -960,36 +664,10 @@ RunService.RenderStepped:Connect(function()
                     if localRoot then
                         local distance = (root.Position - localRoot.Position).Magnitude
                         if not data.Line or not data.Line.Parent then
-                            local line = Instance.new("LineHandleAdornment")
-                            line.Name = "ESP_Line"
-                            line.Adornee = root
-                            line.Thickness = 2
-                            line.Color3 = Color3.fromRGB(0, 150, 255)
-                            line.Transparency = 0.4
-                            line.ZIndex = 1
-                            line.Parent = root
-                            data.Line = line
-                            
-                            local distBb = Instance.new("BillboardGui")
-                            distBb.Name = "ESP_Distance"
-                            distBb.Adornee = root
-                            distBb.Size = UDim2.new(0, 100, 0, 20)
-                            distBb.StudsOffset = Vector3.new(0, -2.5, 0)
-                            distBb.AlwaysOnTop = true
-                            distBb.Parent = root
-                            
-                            local distLabel = Instance.new("TextLabel")
-                            distLabel.BackgroundTransparency = 1
-                            distLabel.Size = UDim2.new(1, 0, 1, 0)
-                            distLabel.Font = Enum.Font.GothamBold
-                            distLabel.TextSize = 14
-                            distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-                            distLabel.TextStrokeTransparency = 0
-                            distLabel.Text = string.format("%d m", distance)
-                            distLabel.Parent = distBb
-                            
-                            data.DistanceGui = distBb
-                            data.DistanceLabel = distLabel
+                            local line = Instance.new("LineHandleAdornment") line.Name = "ESP_Line" line.Adornee = root line.Thickness = 2 line.Color3 = Color3.fromRGB(0, 150, 255) line.Transparency = 0.4 line.ZIndex = 1 line.Parent = root data.Line = line
+                            local distBb = Instance.new("BillboardGui") distBb.Name = "ESP_Distance" distBb.Adornee = root distBb.Size = UDim2.new(0, 100, 0, 20) distBb.StudsOffset = Vector3.new(0, -2.5, 0) distBb.AlwaysOnTop = true distBb.Parent = root
+                            local distLabel = Instance.new("TextLabel") distLabel.BackgroundTransparency = 1 distLabel.Size = UDim2.new(1, 0, 1, 0) distLabel.Font = Enum.Font.GothamBold distLabel.TextSize = 14 distLabel.TextColor3 = Color3.fromRGB(255, 255, 255) distLabel.TextStrokeTransparency = 0 distLabel.Text = string.format("%d m", distance) distLabel.Parent = distBb
+                            data.DistanceGui = distBb data.DistanceLabel = distLabel
                         end
                         if data.DistanceLabel then data.DistanceLabel.Text = string.format("%d m", distance) end
                     end
@@ -1015,65 +693,21 @@ end)
 
 -- ========== 右下角弹窗（5秒后消失） ==========
 task.wait() 
-
 local absSize = main.AbsoluteSize
-
-local notification = Instance.new("Frame")
-notification.Name = "Notification"
-notification.AnchorPoint = Vector2.new(1, 1)
-notification.Position = UDim2.new(1, -20, 1, -20)
-notification.Size = UDim2.new(0, 260, 0, 80)
-notification.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-notification.BackgroundTransparency = 0.1
-notification.BorderSizePixel = 0
-notification.Parent = screenGui
-
-local notifyCorner = Instance.new("UICorner")
-notifyCorner.CornerRadius = UDim.new(0, 8)
-notifyCorner.Parent = notification
-
-local notifyStroke = Instance.new("UIStroke")
-notifyStroke.Color = Color3.fromRGB(100, 100, 120)
-notifyStroke.Thickness = 1
-notifyStroke.Parent = notification
-
-local notifyTitle = Instance.new("TextLabel")
-notifyTitle.Text = "✅ 加载完成"
-notifyTitle.Font = Enum.Font.GothamBold
-notifyTitle.TextSize = 16
-notifyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-notifyTitle.BackgroundTransparency = 1
-notifyTitle.Size = UDim2.new(1, -20, 0, 24)
-notifyTitle.Position = UDim2.new(0, 10, 0, 10)
-notifyTitle.TextXAlignment = Enum.TextXAlignment.Left
-notifyTitle.TextStrokeTransparency = 0.5
-notifyTitle.Parent = notification
-
-local notifyText = Instance.new("TextLabel")
-notifyText.Font = Enum.Font.GothamBold
-notifyText.TextSize = 14
-notifyText.TextColor3 = Color3.fromRGB(220, 220, 230)
-notifyText.BackgroundTransparency = 1
-notifyText.Size = UDim2.new(1, -20, 0, 36)
-notifyText.Position = UDim2.new(0, 10, 0, 34)
-notifyText.TextXAlignment = Enum.TextXAlignment.Left
-notifyText.TextYAlignment = Enum.TextYAlignment.Top
-notifyText.TextWrapped = true
-notifyText.TextStrokeTransparency = 0.5
-notifyText.Text = string.format("设备：%s\n窗口大小：%d x %d", deviceText, absSize.X, absSize.Y)
-notifyText.Parent = notification
-
+local notification = Instance.new("Frame") notification.Name = "Notification" notification.AnchorPoint = Vector2.new(1, 1) notification.Position = UDim2.new(1, -20, 1, -20) notification.Size = UDim2.new(0, 260, 0, 80) notification.BackgroundColor3 = Color3.fromRGB(20, 20, 25) notification.BackgroundTransparency = 0.1 notification.BorderSizePixel = 0 notification.Parent = screenGui
+local notifyCorner = Instance.new("UICorner") notifyCorner.CornerRadius = UDim.new(0, 8) notifyCorner.Parent = notification
+local notifyStroke = Instance.new("UIStroke") notifyStroke.Color = Color3.fromRGB(100, 100, 120) notifyStroke.Thickness = 1 notifyStroke.Parent = notification
+local notifyTitle = Instance.new("TextLabel") notifyTitle.Text = "✅ 加载完成" notifyTitle.Font = Enum.Font.GothamBold notifyTitle.TextSize = 16 notifyTitle.TextColor3 = Color3.fromRGB(255, 255, 255) notifyTitle.BackgroundTransparency = 1 notifyTitle.Size = UDim2.new(1, -20, 0, 24) notifyTitle.Position = UDim2.new(0, 10, 0, 10) notifyTitle.TextXAlignment = Enum.TextXAlignment.Left notifyTitle.TextStrokeTransparency = 0.5 notifyTitle.Parent = notification
+local notifyText = Instance.new("TextLabel") notifyText.Font = Enum.Font.GothamBold notifyText.TextSize = 14 notifyText.TextColor3 = Color3.fromRGB(220, 220, 230) notifyText.BackgroundTransparency = 1 notifyText.Size = UDim2.new(1, -20, 0, 36) notifyText.Position = UDim2.new(0, 10, 0, 34) notifyText.TextXAlignment = Enum.TextXAlignment.Left notifyText.TextYAlignment = Enum.TextYAlignment.Top notifyText.TextWrapped = true notifyText.TextStrokeTransparency = 0.5 notifyText.Text = string.format("设备：%s\n窗口大小：%d x %d", deviceText, absSize.X, absSize.Y) notifyText.Parent = notification
 task.delay(5, function()
     local fadeTime = 0.5
     local tweenInfo = TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    
     TweenService:Create(notification, tweenInfo, {BackgroundTransparency = 1}):Play()
     TweenService:Create(notifyStroke, tweenInfo, {Transparency = 1}):Play()
     TweenService:Create(notifyTitle, tweenInfo, {TextTransparency = 1}):Play()
     TweenService:Create(notifyText, tweenInfo, {TextTransparency = 1}):Play()
-    
     task.wait(fadeTime)
     notification:Destroy()
 end)
 
-print("✅ UI 已加载并彻底清理残留，设备类型：" .. deviceText)
+print("✅ UI 已加载，设备类型：" .. deviceText)
