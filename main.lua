@@ -363,16 +363,16 @@ createSpeedInput(generalList, "跳跃高度", 50, function(val)
     end
 end)
 
-local flyBtn = Instance.new("TextButton") flyBtn.Name = "FlyToggle" flyBtn.Text = "飞行：关" flyBtn.TextSize = 16 flyBtn.Font = Enum.Font.GothamBold flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255) flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) flyBtn.BorderSizePixel = 0 flyBtn.Size = UDim2.new(0, 200, 0, 38) flyBtn.Parent = generalList
+local flyBtn = Instance.new("TextButton") flyBtn.Name = "FlyToggle" flyBtn.Text = "飞行(含穿墙)：关" flyBtn.TextSize = 16 flyBtn.Font = Enum.Font.GothamBold flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255) flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) flyBtn.BorderSizePixel = 0 flyBtn.Size = UDim2.new(0, 200, 0, 38) flyBtn.Parent = generalList
 local flyCorner = Instance.new("UICorner") flyCorner.CornerRadius = UDim.new(0, 6) flyCorner.Parent = flyBtn
 flyBtn.MouseButton1Click:Connect(function()
     generalState.Fly = not generalState.Fly
-    if generalState.Fly then flyBtn.Text = "飞行：开" flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
-    else flyBtn.Text = "飞行：关" flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) end
+    if generalState.Fly then flyBtn.Text = "飞行(含穿墙)：开" flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    else flyBtn.Text = "飞行(含穿墙)：关" flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) end
     if updateFly then updateFly() end
 end)
 
--- ⭐️ 关键修改：强化版的“执行甩飞”按钮逻辑 ⭐️
+-- 执行甩飞按钮
 local flingBtn = Instance.new("TextButton")
 flingBtn.Name = "FlingButton"
 flingBtn.Text = "执行甩飞"
@@ -390,22 +390,15 @@ flingBtn.MouseButton1Click:Connect(function()
         if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = p.Character.HumanoidRootPart
             pcall(function()
-                -- 1. 核心：尝试强行夺取网络所有权（把物理控制权交给自己）
                 hrp:SetNetworkOwner(player)
-                
-                -- 2. 施加强烈的旋转力
                 local bv = Instance.new("BodyAngularVelocity")
                 bv.AngularVelocity = Vector3.new(0, 999999, 0)
                 bv.MaxTorque = Vector3.new(999999, 999999, 999999)
                 bv.Parent = hrp
-                
-                -- 3. 施加向上的线速度，让他们飞起来
                 local bv2 = Instance.new("BodyVelocity")
                 bv2.Velocity = Vector3.new(math.random(-500, 500), 500, math.random(-500, 500))
                 bv2.MaxForce = Vector3.new(999999, 999999, 999999)
                 bv2.Parent = hrp
-
-                -- 4. 1秒后销毁力，防止游戏永久卡死
                 task.delay(1, function() 
                     if bv then bv:Destroy() end 
                     if bv2 then bv2:Destroy() end
@@ -418,38 +411,85 @@ end)
 createToggleButton(generalList, "防甩飞", "AntiFling", Color3.fromRGB(255, 150, 0), generalState)
 
 -- ========== 核心通用逻辑实现 ==========
-local flyBodyVelocity = nil local flyBodyGyro = nil local flyConnection = nil
+local flyBodyVelocity = nil
+local flyBodyGyro = nil
+local flyConnection = nil
+local noclipConnection = nil -- 新增 Noclip 连接
+
 updateFly = function()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local hrp = char.HumanoidRootPart
 
     if generalState.Fly then
+        -- 1. 初始化飞行物理组件
         if not flyBodyVelocity then
-            flyBodyVelocity = Instance.new("BodyVelocity") flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5) flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) flyBodyVelocity.Parent = hrp
-            flyBodyGyro = Instance.new("BodyGyro") flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5) flyBodyGyro.P = 1000 flyBodyGyro.Parent = hrp
+            flyBodyVelocity = Instance.new("BodyVelocity")
+            flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            flyBodyVelocity.Parent = hrp
+
+            flyBodyGyro = Instance.new("BodyGyro")
+            flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+            flyBodyGyro.P = 1000
+            flyBodyGyro.Parent = hrp
         end
+
+        -- 2. 开启 Noclip（自动穿墙）
+        if noclipConnection then noclipConnection:Disconnect() end
+        noclipConnection = RunService.Stepped:Connect(function()
+            if player.Character then
+                for _, part in ipairs(player.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+
+        -- 3. 键盘控制逻辑
         if flyConnection then flyConnection:Disconnect() end
         flyConnection = RunService.RenderStepped:Connect(function()
             if not generalState.Fly or not char.Parent then return end
             local camera = workspace.CurrentCamera
             local moveDirection = Vector3.new(0, 0, 0)
+
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0, 1, 0) end
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection -= Vector3.new(0, 1, 0) end
-            if moveDirection.Magnitude > 0 then flyBodyVelocity.Velocity = moveDirection.Unit * 60 else flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end
+
+            if moveDirection.Magnitude > 0 then
+                flyBodyVelocity.Velocity = moveDirection.Unit * 60
+            else
+                flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            end
             flyBodyGyro.CFrame = camera.CFrame
         end)
     else
+        -- 关闭飞行时清理所有相关组件
         if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
         if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
         if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+        
+        -- 关闭 Noclip 并恢复碰撞
+        if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
+        if char then
+            for _, part in ipairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
     end
 end
-player.CharacterAdded:Connect(function() task.wait(1) if generalState.Fly then updateFly() end end)
+
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    if generalState.Fly then updateFly() end
+end)
 
 local antiFlingConnection = nil
 updateAntiFling = function()
