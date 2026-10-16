@@ -127,7 +127,8 @@ titleDivider.Parent = topBar
 local leftPanel = Instance.new("Frame")
 leftPanel.Name = "LeftPanel"
 leftPanel.BackgroundTransparency = 1
-leftPanel.Size = UDim2.new(0, 100, 1, -50)
+-- 关键修复：高度减去 100，为底部的 Setting 按钮留出充足的专属空间，避免重叠
+leftPanel.Size = UDim2.new(0, 100, 1, -100)
 leftPanel.Position = UDim2.new(0, 0, 0, 50)
 leftPanel.Parent = main
 
@@ -143,6 +144,7 @@ local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 10)
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 listLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder -- 开启排序
 listLayout.Parent = leftPanel
 
 local listPadding = Instance.new("UIPadding")
@@ -159,13 +161,14 @@ espButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 espButton.BorderSizePixel = 0
 espButton.Size = UDim2.new(0, 80, 0, 36)
+espButton.LayoutOrder = 1
 espButton.Parent = leftPanel
 
 local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
--- 视觉按钮
+-- 视觉按钮（新增）
 local visionButton = Instance.new("TextButton")
 visionButton.Name = "VisionButton"
 visionButton.Text = "视觉"
@@ -175,13 +178,14 @@ visionButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 visionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 visionButton.BorderSizePixel = 0
 visionButton.Size = UDim2.new(0, 80, 0, 36)
+visionButton.LayoutOrder = 2
 visionButton.Parent = leftPanel
 
 local visionBtnCorner = Instance.new("UICorner")
 visionBtnCorner.CornerRadius = UDim.new(0, 6)
 visionBtnCorner.Parent = visionButton
 
--- Setting 按钮
+-- Setting 按钮（左下角固定）
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -235,7 +239,6 @@ espPage.Size = UDim2.new(1, 0, 1, 0)
 espPage.Visible = false
 espPage.Parent = content
 
--- 分类 1：玩家 ESP
 local espTitle = Instance.new("TextLabel")
 espTitle.Text = "玩家 ESP"
 espTitle.BackgroundTransparency = 1
@@ -258,7 +261,6 @@ local espLayout = Instance.new("UIListLayout")
 espLayout.Padding = UDim.new(0, 10)
 espLayout.Parent = espList
 
--- 分类 2：交互 ESP
 local interactTitle = Instance.new("TextLabel")
 interactTitle.Text = "交互 ESP"
 interactTitle.BackgroundTransparency = 1
@@ -282,7 +284,7 @@ local interactLayout = Instance.new("UIListLayout")
 interactLayout.Padding = UDim.new(0, 10)
 interactLayout.Parent = interactList
 
--- ========== 视觉页面（新增） ==========
+-- ========== 视觉页面 ==========
 local visionPage = Instance.new("Frame")
 visionPage.Name = "VisionPage"
 visionPage.BackgroundTransparency = 1
@@ -313,17 +315,8 @@ visionLayout.Padding = UDim.new(0, 12)
 visionLayout.Parent = visionList
 
 -- 状态表
-local espState = { 
-    Highlight = false, 
-    Name = false, 
-    Line = false,
-    Interact = false
-}
-
-local visualState = {
-    HighlightMode = false,
-    RemoveDarkness = false
-}
+local espState = { Highlight = false, Name = false, Line = false, Interact = false }
+local visualState = { HighlightMode = false, RemoveDarkness = false }
 
 -- 通用创建开关按钮函数
 local function createToggleButton(parent, text, key, onColor)
@@ -352,7 +345,6 @@ local function createToggleButton(parent, text, key, onColor)
                 btn.Text = text .. "：关"
                 btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
             end
-            -- 触发视觉更新
             if updateVisuals then updateVisuals() end
         else
             espState[key] = not espState[key]
@@ -367,26 +359,19 @@ local function createToggleButton(parent, text, key, onColor)
     end)
 end
 
--- 创建玩家 ESP 按钮
 createToggleButton(espList, "高亮显示玩家", "Highlight", Color3.fromRGB(0, 120, 255))
 createToggleButton(espList, "显示玩家用户名", "Name", Color3.fromRGB(0, 120, 255))
 createToggleButton(espList, "显示距离射线", "Line", Color3.fromRGB(0, 120, 255))
-
--- 创建交互 ESP 按钮
 createToggleButton(interactList, "高亮可交互目标", "Interact", Color3.fromRGB(0, 200, 80))
 
--- 创建视觉页面按钮
+-- 视觉页面按钮
 createToggleButton(visionList, "开启高亮模式", "HighlightMode", Color3.fromRGB(255, 180, 0))
 createToggleButton(visionList, "删除地图黑暗效果", "RemoveDarkness", Color3.fromRGB(255, 100, 100))
 
 -- ========== 视觉核心逻辑 ==========
 local highlightEffect = nil
 local originalLighting = {
-    Brightness = nil,
-    Ambient = nil,
-    OutdoorAmbient = nil,
-    ClockTime = nil,
-    FogEnd = nil
+    Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil
 }
 
 updateVisuals = function()
@@ -409,7 +394,6 @@ updateVisuals = function()
 
     -- 2. 删除黑暗效果
     if visualState.RemoveDarkness then
-        -- 保存原始光照设置（只在第一次开启时保存）
         if not originalLighting.Brightness then
             originalLighting.Brightness = Lighting.Brightness
             originalLighting.Ambient = Lighting.Ambient
@@ -418,7 +402,6 @@ updateVisuals = function()
             originalLighting.FogEnd = Lighting.FogEnd
         end
         
-        -- 强制调亮
         pcall(function()
             Lighting.Brightness = 2
             Lighting.Ambient = Color3.fromRGB(255, 255, 255)
@@ -427,7 +410,6 @@ updateVisuals = function()
             Lighting.FogEnd = 100000
         end)
     else
-        -- 恢复原始设置
         if originalLighting.Brightness then
             pcall(function()
                 Lighting.Brightness = originalLighting.Brightness
@@ -437,10 +419,7 @@ updateVisuals = function()
                 Lighting.FogEnd = originalLighting.FogEnd
             end)
             
-            -- 重置缓存
-            originalLighting = {
-                Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil
-            }
+            originalLighting = { Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil }
         end
     end
 end
@@ -636,7 +615,7 @@ local function cleanupESP()
     espCache = {}
 end
 
--- ========== 核心交互 ESP 逻辑 ==========
+-- ========== 核心交互 ESP 逻辑（极度严格版） ==========
 local interactCache = {}
 
 local function cleanupInteractESP()
@@ -665,8 +644,13 @@ task.spawn(function()
                     end
                     
                     if targetPart and not interactCache[targetPart] then
+                        -- 关键修复：仅当部件最大尺寸小于 15 时才进行高亮（宝箱大小通常小于10）
+                        -- 这样哪怕提示挂在地板或墙壁上，也不会全屏变绿
+                        local size = targetPart.Size
+                        local isSmallEnough = (size.X <= 15 and size.Y <= 15 and size.Z <= 15)
+                        
                         local hl = nil
-                        if targetPart.Size.Magnitude <= 30 then
+                        if isSmallEnough then
                             hl = Instance.new("Highlight")
                             hl.Name = "Interact_Highlight"
                             hl.FillColor = Color3.fromRGB(0, 255, 100)
@@ -677,6 +661,7 @@ task.spawn(function()
                             hl.Parent = targetPart
                         end
                         
+                        -- 无论大小，都会在物体上方显示“[可交互]”标签
                         local bb = Instance.new("BillboardGui")
                         bb.Name = "Interact_Label"
                         bb.Adornee = targetPart
