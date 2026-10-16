@@ -1,9 +1,9 @@
--- 自动生成占屏幕 50% 的窗口，并识别 PC / 手机
+-- 自动生成占屏幕 50% 的窗口，识别 PC / 手机，并在右下角弹窗提示 5 秒
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中
--- 或作为 loadstring 脚本执行
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -76,7 +76,7 @@ local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 8)
 buttonCorner.Parent = resizeButton
 
--- ========== 内容区域 ==========
+-- ========== 内容区域（干净，以后放你的功能） ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
@@ -96,47 +96,12 @@ title.Size = UDim2.new(1, 0, 0, 36)
 title.Position = UDim2.new(0, 0, 0, 0)
 title.Parent = content
 
-local deviceLabel = Instance.new("TextLabel")
-deviceLabel.Name = "DeviceLabel"
-deviceLabel.BackgroundTransparency = 1
-deviceLabel.Text = "当前设备：" .. deviceText
-deviceLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
-deviceLabel.TextSize = 18
-deviceLabel.Font = Enum.Font.Gotham
-deviceLabel.TextXAlignment = Enum.TextXAlignment.Left
-deviceLabel.Size = UDim2.new(1, 0, 0, 24)
-deviceLabel.Position = UDim2.new(0, 0, 0, 40)
-deviceLabel.Parent = content
-
-local sizeLabel = Instance.new("TextLabel")
-sizeLabel.Name = "SizeLabel"
-sizeLabel.BackgroundTransparency = 1
-sizeLabel.Text = "当前大小：加载中..."
-sizeLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
-sizeLabel.TextSize = 16
-sizeLabel.Font = Enum.Font.Gotham
-sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
-sizeLabel.Size = UDim2.new(1, 0, 0, 24)
-sizeLabel.Position = UDim2.new(0, 0, 0, 70)
-sizeLabel.Parent = content
-
--- 等待一帧以获取正确的 AbsoluteSize
-task.wait()
-
--- 更新尺寸标签
-local function updateSizeLabel()
-    local absSize = main.AbsoluteSize
-    sizeLabel.Text = string.format("当前大小：%d x %d", absSize.X, absSize.Y)
-end
-updateSizeLabel()
-
 -- ========== 调整大小逻辑 ==========
 local resizing = false
 local startMouse = Vector2.new()
 local startWidth = 0
 local startHeight = 0
 
--- 最小 / 最大尺寸限制
 local MIN_WIDTH = 200
 local MIN_HEIGHT = 150
 local MAX_WIDTH_RATIO = 0.95
@@ -159,7 +124,6 @@ local function stopResize()
     if resizing then
         resizing = false
         resizeButton.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
-        updateSizeLabel()
     end
 end
 
@@ -185,7 +149,6 @@ UserInputService.InputChanged:Connect(function(input)
     local newHeight = math.clamp(startHeight + delta.Y, MIN_HEIGHT, maxHeight)
     
     main.Size = UDim2.fromOffset(newWidth, newHeight)
-    updateSizeLabel()
 end)
 
 UserInputService.InputEnded:Connect(function(input)
@@ -195,7 +158,69 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- 窗口大小变化时更新标签
-main:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSizeLabel)
+-- ========== 右下角弹窗（5秒后消失） ==========
+task.wait() -- 等待一帧，确保窗口尺寸计算完毕
+
+local absSize = main.AbsoluteSize
+
+-- 创建弹窗 Frame
+local notification = Instance.new("Frame")
+notification.Name = "Notification"
+notification.AnchorPoint = Vector2.new(1, 1)
+notification.Position = UDim2.new(1, -20, 1, -20) -- 右下角，距离边缘 20 像素
+notification.Size = UDim2.new(0, 260, 0, 80)
+notification.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+notification.BackgroundTransparency = 0.1
+notification.BorderSizePixel = 0
+notification.Parent = screenGui
+
+local notifyCorner = Instance.new("UICorner")
+notifyCorner.CornerRadius = UDim.new(0, 8)
+notifyCorner.Parent = notification
+
+local notifyStroke = Instance.new("UIStroke")
+notifyStroke.Color = Color3.fromRGB(80, 80, 95)
+notifyStroke.Thickness = 1
+notifyStroke.Parent = notification
+
+-- 弹窗标题
+local notifyTitle = Instance.new("TextLabel")
+notifyTitle.Text = "✅ 加载完成"
+notifyTitle.Font = Enum.Font.GothamBold
+notifyTitle.TextSize = 16
+notifyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+notifyTitle.BackgroundTransparency = 1
+notifyTitle.Size = UDim2.new(1, -20, 0, 24)
+notifyTitle.Position = UDim2.new(0, 10, 0, 10)
+notifyTitle.TextXAlignment = Enum.TextXAlignment.Left
+notifyTitle.Parent = notification
+
+-- 弹窗内容
+local notifyText = Instance.new("TextLabel")
+notifyText.Font = Enum.Font.Gotham
+notifyText.TextSize = 14
+notifyText.TextColor3 = Color3.fromRGB(200, 200, 210)
+notifyText.BackgroundTransparency = 1
+notifyText.Size = UDim2.new(1, -20, 0, 36)
+notifyText.Position = UDim2.new(0, 10, 0, 34)
+notifyText.TextXAlignment = Enum.TextXAlignment.Left
+notifyText.TextYAlignment = Enum.TextYAlignment.Top
+notifyText.TextWrapped = true
+notifyText.Text = string.format("设备：%s\n窗口大小：%d x %d", deviceText, absSize.X, absSize.Y)
+notifyText.Parent = notification
+
+-- 5秒后自动消失（带淡出动画）
+task.delay(5, function()
+    local fadeTime = 0.5
+    local tweenInfo = TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    TweenService:Create(notification, tweenInfo, {BackgroundTransparency = 1}):Play()
+    TweenService:Create(notifyStroke, tweenInfo, {Transparency = 1}):Play()
+    TweenService:Create(notifyTitle, tweenInfo, {TextTransparency = 1}):Play()
+    TweenService:Create(notifyText, tweenInfo, {TextTransparency = 1}):Play()
+    
+    task.wait(fadeTime)
+    notification:Destroy()
+end)
 
 print("UI 已加载，设备类型：" .. deviceText)
