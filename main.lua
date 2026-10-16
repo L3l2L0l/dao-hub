@@ -1,4 +1,4 @@
--- 自动生成占屏幕 50% 的窗口，带左侧功能栏 + 右侧 ESP 功能面板
+-- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + 右侧 ESP 功能面板
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中
 
 local Players = game:GetService("Players")
@@ -55,30 +55,78 @@ mainStroke.Color = Color3.fromRGB(80, 80, 95)
 mainStroke.Thickness = 1
 mainStroke.Parent = main
 
+-- ========== 顶部标题栏（新增） ==========
+local topBar = Instance.new("Frame")
+topBar.Name = "TopBar"
+topBar.Size = UDim2.new(1, 0, 0, 50)
+topBar.Position = UDim2.new(0, 0, 0, 0)
+topBar.BackgroundTransparency = 1
+topBar.Parent = main
+
+-- 彩虹字标题
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Text = "dao hub"
+titleLabel.Font = Enum.Font.GothamBlack
+titleLabel.TextSize = 28
+titleLabel.BackgroundTransparency = 1
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.Position = UDim2.new(0, 0, 0, 5)
+titleLabel.Parent = topBar
+
+-- 彩虹渐变
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),     -- 红
+    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 165, 0)),  -- 橙
+    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 255, 0)),  -- 黄
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 0)),    -- 绿
+    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 127, 255)),  -- 蓝
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(128, 0, 128))     -- 紫
+})
+gradient.Parent = titleLabel
+
+-- 让彩虹缓缓流动
+task.spawn(function()
+    while titleLabel.Parent do
+        task.wait(0.05)
+        gradient.Rotation = (gradient.Rotation + 2) % 360
+    end
+end)
+
+-- 标题下方的分割线
+local titleDivider = Instance.new("Frame")
+titleDivider.Name = "TitleDivider"
+titleDivider.Size = UDim2.new(1, -20, 0, 2)
+titleDivider.Position = UDim2.new(0, 10, 0, 48)
+titleDivider.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
+titleDivider.BorderSizePixel = 0
+titleDivider.Parent = topBar
+
 -- ========== 右上角“调节UI”按钮 ==========
 local resizeButton = Instance.new("TextButton")
 resizeButton.Name = "ResizeUI"
 resizeButton.Text = "调节UI"
-resizeButton.TextSize = 16
+resizeButton.TextSize = 14
 resizeButton.Font = Enum.Font.GothamBold
 resizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 resizeButton.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
 resizeButton.BorderSizePixel = 0
 resizeButton.AutoButtonColor = false
-resizeButton.Size = UDim2.new(0, 80, 0, 40)
-resizeButton.Position = UDim2.new(1, -90, 0, 10)
-resizeButton.Parent = main
+resizeButton.Size = UDim2.new(0, 70, 0, 32)
+resizeButton.Position = UDim2.new(1, -80, 0, 9)
+resizeButton.Parent = topBar
 
 local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 8)
+buttonCorner.CornerRadius = UDim.new(0, 6)
 buttonCorner.Parent = resizeButton
 
--- ========== 左侧新功能区 ==========
+-- ========== 左侧新功能区（下移避开标题） ==========
 local leftPanel = Instance.new("Frame")
 leftPanel.Name = "LeftPanel"
 leftPanel.BackgroundTransparency = 1
-leftPanel.Size = UDim2.new(0, 100, 1, 0)
-leftPanel.Position = UDim2.new(0, 0, 0, 0)
+leftPanel.Size = UDim2.new(0, 100, 1, -50) -- 高度减去 50
+leftPanel.Position = UDim2.new(0, 0, 0, 50) -- 从顶部 50 像素处开始
 leftPanel.Parent = main
 
 -- 左侧功能区右侧的贯穿蓝线（分割线）
@@ -113,12 +161,12 @@ local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
--- ========== 右侧内容区域 ==========
+-- ========== 右侧内容区域（下移避开标题） ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
-content.Position = UDim2.new(0, 110, 0, 60)
-content.Size = UDim2.new(1, -120, 1, -70)
+content.Position = UDim2.new(0, 110, 0, 110) -- 之前是 60，现在下移 50
+content.Size = UDim2.new(1, -120, 1, -120) -- 高度减去 120
 content.Parent = main
 
 -- 默认页面
@@ -224,19 +272,17 @@ end)
 -- ========== 核心 ESP 逻辑 ==========
 local espCache = {}
 
--- 清理 ESP 缓存的函数
 local function cleanupESP()
     for _, data in pairs(espCache) do
         if data.Highlight then data.Highlight:Destroy() end
         if data.Billboard then data.Billboard:Destroy() end
         if data.Line then data.Line:Destroy() end
+        if data.DistanceGui then data.DistanceGui:Destroy() end
     end
     espCache = {}
 end
 
--- 更新 ESP 的主循环
 RunService.RenderStepped:Connect(function()
-    -- 如果没开启任何 ESP 功能，清理并退出
     if not (espState.Highlight or espState.Name or espState.Line) then
         cleanupESP()
         return
@@ -254,13 +300,12 @@ RunService.RenderStepped:Connect(function()
             local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
             if head and root and humanoid and humanoid.Health > 0 then
-                -- 获取或创建该玩家的 ESP 缓存数据
                 if not espCache[targetPlayer] then
                     espCache[targetPlayer] = {}
                 end
                 local data = espCache[targetPlayer]
 
-                -- 1. 高亮显示
+                -- 1. 高亮
                 if espState.Highlight then
                     if not data.Highlight or not data.Highlight.Parent then
                         local hl = Instance.new("Highlight")
@@ -280,7 +325,7 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
 
-                -- 2. 显示用户名
+                -- 2. 用户名
                 if espState.Name then
                     if not data.Billboard or not data.Billboard.Parent then
                         local bb = Instance.new("BillboardGui")
@@ -305,7 +350,6 @@ RunService.RenderStepped:Connect(function()
                         data.Billboard = bb
                         data.NameLabel = textLabel
                     end
-                    -- 更新名字（如果改名或需要显示额外信息）
                     if data.NameLabel then
                         data.NameLabel.Text = targetPlayer.Name
                     end
@@ -317,12 +361,11 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
 
-                -- 3. 显示距离射线
+                -- 3. 距离
                 if espState.Line then
                     if localRoot then
                         local distance = (root.Position - localRoot.Position).Magnitude
                         
-                        -- 创建或更新线条
                         if not data.Line or not data.Line.Parent then
                             local line = Instance.new("LineHandleAdornment")
                             line.Name = "ESP_Line"
@@ -331,10 +374,9 @@ RunService.RenderStepped:Connect(function()
                             line.Color3 = Color3.fromRGB(60, 120, 220)
                             line.Transparency = 0.5
                             line.ZIndex = 1
-                            line.Parent = root -- 挂载在目标玩家身上，本地可见
+                            line.Parent = root
                             data.Line = line
                             
-                            -- 在线条上添加距离文本（使用 BillboardGui 显示距离）
                             local distBb = Instance.new("BillboardGui")
                             distBb.Name = "ESP_Distance"
                             distBb.Adornee = root
@@ -357,20 +399,6 @@ RunService.RenderStepped:Connect(function()
                             data.DistanceLabel = distLabel
                         end
                         
-                        -- 更新线条位置（LineHandleAdornment 会从 Adornee 中心射出，需调整）
-                        if data.Line then
-                            -- 这里的线条是从目标玩家中心沿一定方向射出。
-                            -- 为了让线条从本地玩家延伸到目标玩家，我们使用 LineHandleAdornment 的 CFRame 或直接使用 Beam。
-                            -- LineHandleAdornment 不太适合连接两点。改用更简单的绘制方式。
-                            -- 这里为了稳定，我们直接在 data.DistanceLabel 上显示距离，并保留线条作为朝向指示。
-                            -- 为了真正实现连接两点，我们稍微改造一下，使用 Beam 或者直接更新 LineHandleAdornment 的方向。
-                            -- 修正：用 Beam 从本地玩家连接到目标玩家。但 Beam 需要两个 Attachment。
-                            -- 考虑到性能，我们可以只用距离显示，或者更新 LineHandleAdornment 的位置。
-                            -- 由于 LineHandleAdornment 是基于 Adornee 的，我们可以在目标玩家上创建一个 Attachment，然后指向本地玩家。
-                            -- 但由于是纯脚本，直接改用屏幕绘图不现实。
-                            -- 最简单的距离射线效果：将 LineHandleAdornment 放在目标玩家身上，长度设为距离。
-                        end
-                        
                         if data.DistanceLabel then
                             data.DistanceLabel.Text = string.format("%d m", distance)
                         end
@@ -384,7 +412,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- 清理已离开或死亡的玩家
+    -- 清理离开/死亡的玩家
     for p, data in pairs(espCache) do
         if not p.Parent or not p.Character or not p.Character:FindFirstChild("Humanoid") or p.Character.Humanoid.Health <= 0 then
             if data.Highlight then data.Highlight:Destroy() end
