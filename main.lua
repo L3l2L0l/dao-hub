@@ -1,4 +1,4 @@
--- 自动生成占屏幕 50% 的窗口，识别 PC / 手机，并在右下角弹窗提示 5 秒
+-- 自动生成占屏幕 50% 的窗口，识别设备，右下角弹窗提示，左侧带功能栏分割线
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中
 
 local Players = game:GetService("Players")
@@ -44,7 +44,7 @@ local main = Instance.new("Frame")
 main.Name = "MainWindow"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromScale(0.5, 0.5) -- 宽高各占屏幕 50%
+main.Size = UDim2.fromScale(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
 main.BorderSizePixel = 0
 main.Parent = screenGui
@@ -58,7 +58,7 @@ mainStroke.Color = Color3.fromRGB(80, 80, 95)
 mainStroke.Thickness = 1
 mainStroke.Parent = main
 
--- ========== 左侧“调节UI”按钮 ==========
+-- ========== 右上角“调节UI”按钮（避让左侧功能区） ==========
 local resizeButton = Instance.new("TextButton")
 resizeButton.Name = "ResizeUI"
 resizeButton.Text = "调节UI"
@@ -69,19 +69,53 @@ resizeButton.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
 resizeButton.BorderSizePixel = 0
 resizeButton.AutoButtonColor = false
 resizeButton.Size = UDim2.new(0, 80, 0, 40)
-resizeButton.Position = UDim2.new(0, 10, 0, 10)
+resizeButton.Position = UDim2.new(1, -90, 0, 10) -- 移到右上角
 resizeButton.Parent = main
 
 local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 8)
 buttonCorner.Parent = resizeButton
 
--- ========== 内容区域（干净，以后放你的功能） ==========
+-- ========== 左侧新功能区 ==========
+local leftPanel = Instance.new("Frame")
+leftPanel.Name = "LeftPanel"
+leftPanel.BackgroundTransparency = 1
+leftPanel.Size = UDim2.new(0, 100, 1, 0) -- 宽度 100 像素
+leftPanel.Position = UDim2.new(0, 0, 0, 0)
+leftPanel.Parent = main
+
+-- 左侧功能区右侧的贯穿蓝线（分割线）
+local blueLine = Instance.new("Frame")
+blueLine.Name = "BlueDividerLine"
+blueLine.Size = UDim2.new(0, 2, 1, 0)
+blueLine.Position = UDim2.new(1, -2, 0, 0)
+blueLine.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
+blueLine.BorderSizePixel = 0
+blueLine.Parent = leftPanel
+
+-- 在左侧功能区里添加一排蓝色细竖线（作为视觉点缀和占位）
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 10)
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+listLayout.Parent = leftPanel
+
+for i = 1, 4 do
+    local shortLine = Instance.new("Frame")
+    shortLine.Name = "DecoLine" .. i
+    shortLine.Size = UDim2.new(0, 4, 0, 30) -- 短竖线
+    shortLine.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
+    shortLine.BackgroundTransparency = 0.2 + (i * 0.15) -- 透明渐变
+    shortLine.BorderSizePixel = 0
+    shortLine.Parent = leftPanel
+end
+
+-- ========== 右侧内容区域 ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
-content.Position = UDim2.new(0, 10, 0, 60)
-content.Size = UDim2.new(1, -20, 1, -70)
+content.Position = UDim2.new(0, 110, 0, 60) -- 向右偏移，避让左侧功能区
+content.Size = UDim2.new(1, -120, 1, -70)
 content.Parent = main
 
 local title = Instance.new("TextLabel")
@@ -102,8 +136,8 @@ local startMouse = Vector2.new()
 local startWidth = 0
 local startHeight = 0
 
-local MIN_WIDTH = 200
-local MIN_HEIGHT = 150
+local MIN_WIDTH = 300 -- 稍微加大最小宽度，以免左侧功能栏被挤压变形
+local MIN_HEIGHT = 200
 local MAX_WIDTH_RATIO = 0.95
 local MAX_HEIGHT_RATIO = 0.95
 
@@ -159,15 +193,14 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 
 -- ========== 右下角弹窗（5秒后消失） ==========
-task.wait() -- 等待一帧，确保窗口尺寸计算完毕
+task.wait() 
 
 local absSize = main.AbsoluteSize
 
--- 创建弹窗 Frame
 local notification = Instance.new("Frame")
 notification.Name = "Notification"
 notification.AnchorPoint = Vector2.new(1, 1)
-notification.Position = UDim2.new(1, -20, 1, -20) -- 右下角，距离边缘 20 像素
+notification.Position = UDim2.new(1, -20, 1, -20)
 notification.Size = UDim2.new(0, 260, 0, 80)
 notification.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
 notification.BackgroundTransparency = 0.1
@@ -183,7 +216,6 @@ notifyStroke.Color = Color3.fromRGB(80, 80, 95)
 notifyStroke.Thickness = 1
 notifyStroke.Parent = notification
 
--- 弹窗标题
 local notifyTitle = Instance.new("TextLabel")
 notifyTitle.Text = "✅ 加载完成"
 notifyTitle.Font = Enum.Font.GothamBold
@@ -195,7 +227,6 @@ notifyTitle.Position = UDim2.new(0, 10, 0, 10)
 notifyTitle.TextXAlignment = Enum.TextXAlignment.Left
 notifyTitle.Parent = notification
 
--- 弹窗内容
 local notifyText = Instance.new("TextLabel")
 notifyText.Font = Enum.Font.Gotham
 notifyText.TextSize = 14
@@ -209,7 +240,6 @@ notifyText.TextWrapped = true
 notifyText.Text = string.format("设备：%s\n窗口大小：%d x %d", deviceText, absSize.X, absSize.Y)
 notifyText.Parent = notification
 
--- 5秒后自动消失（带淡出动画）
 task.delay(5, function()
     local fadeTime = 0.5
     local tweenInfo = TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
