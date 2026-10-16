@@ -123,18 +123,18 @@ titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 左侧功能按钮（直接挂载在主窗口下，绝对定位，绝不可能跑到窗口外） ==========
+-- ========== 左侧功能区（严格主窗口内绝对定位） ==========
 
--- 左侧分割线（按你要求：距离主窗口左侧 80px）
+-- 左侧分割线（距离主窗口左侧 80px，紧贴按钮右侧）
 local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
 blueLine.Size = UDim2.new(0, 2, 1, -50) -- 高度填满顶部栏下方
-blueLine.Position = UDim2.new(0, 80, 0, 50) -- X=80px，Y=50px（顶部栏下方）
+blueLine.Position = UDim2.new(0, 80, 0, 50) -- X=80px，Y=50px
 blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
-blueLine.Parent = main -- 直接挂载到主窗口
+blueLine.Parent = main
 
--- ESP 按钮（X=50px，Y=50px）
+-- ESP 按钮（X=0px，紧贴左边缘）
 local espButton = Instance.new("TextButton")
 espButton.Name = "ESPButton"
 espButton.Text = "ESP"
@@ -143,15 +143,15 @@ espButton.Font = Enum.Font.GothamBold
 espButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 espButton.BorderSizePixel = 0
-espButton.Size = UDim2.new(0, 80, 0, 36) -- 宽 80，高 36
-espButton.Position = UDim2.new(0, 50, 0, 50) -- 距离左侧 50px
+espButton.Size = UDim2.new(0, 80, 0, 36)
+espButton.Position = UDim2.new(0, 0, 0, 50) -- 距离左侧 0px（紧贴边框）
 espButton.Parent = main
 
 local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
--- 视觉按钮（X=50px，Y=96px，间隔 10px）
+-- 视觉按钮（X=0px，Y=96px，间隔 10px）
 local visionButton = Instance.new("TextButton")
 visionButton.Name = "VisionButton"
 visionButton.Text = "视觉"
@@ -161,14 +161,14 @@ visionButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 visionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 visionButton.BorderSizePixel = 0
 visionButton.Size = UDim2.new(0, 80, 0, 36)
-visionButton.Position = UDim2.new(0, 50, 0, 96) -- 距离左侧 50px
+visionButton.Position = UDim2.new(0, 0, 0, 96) -- 距离左侧 0px
 visionButton.Parent = main
 
 local visionBtnCorner = Instance.new("UICorner")
 visionBtnCorner.CornerRadius = UDim.new(0, 6)
 visionBtnCorner.Parent = visionButton
 
--- Setting 按钮（X=50px，Y=142px，间隔 10px）
+-- Setting 按钮（X=0px，Y=142px，间隔 10px）
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -178,19 +178,19 @@ settingButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 settingButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 settingButton.BorderSizePixel = 0
 settingButton.Size = UDim2.new(0, 80, 0, 36)
-settingButton.Position = UDim2.new(0, 50, 0, 142) -- 距离左侧 50px
+settingButton.Position = UDim2.new(0, 0, 0, 142) -- 距离左侧 0px
 settingButton.Parent = main
 
 local settingBtnCorner = Instance.new("UICorner")
 settingBtnCorner.CornerRadius = UDim.new(0, 6)
 settingBtnCorner.Parent = settingButton
 
--- ========== 右侧内容区域（避让左侧按钮） ==========
+-- ========== 右侧内容区域（避让左侧按钮，左移到 100px 处） ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
-content.Position = UDim2.new(0, 140, 0, 110) -- 按钮延伸到 130px，所以内容区从 140px 开始
-content.Size = UDim2.new(1, -150, 1, -120)
+content.Position = UDim2.new(0, 100, 0, 110) -- 按钮在 80px 结束，内容从 100px 开始
+content.Size = UDim2.new(1, -110, 1, -120)
 content.Parent = main
 
 -- 默认页面
