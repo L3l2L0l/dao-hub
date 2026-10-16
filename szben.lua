@@ -161,7 +161,8 @@ local viewDirection = Vector3.new(0, 0, -1)
 
 -- 新增：行走速度相关变量
 local customWalkSpeedEnabled = false
-local customWalkSpeedValue = 16
+local customWalkSpeedValue = 100 -- 默认设为 100，用户可修改
+local defaultWalkSpeed = 16      -- 用于记录游戏原本的默认速度
 
 local pixelHitboxOn = false
 local originalSizes = {}
@@ -603,7 +604,6 @@ task.spawn(function()
                         local highlightTarget = targetPart
                         local targetModel = targetPart:FindFirstAncestorOfClass("Model")
                         
-                        -- 尺寸限制防全图高亮
                         if targetModel then
                             local extents = targetModel:GetExtentsSize()
                             if extents.X < 100 and extents.Y < 100 and extents.Z < 100 then
@@ -633,7 +633,6 @@ task.spawn(function()
                             hl.Adornee = highlightTarget
                             hl.Parent = highlightTarget
                             
-                            -- 文字精准绑定在目标部件上
                             local bb = Instance.new("BillboardGui")
                             bb.Name = "Interact_Label"
                             bb.Adornee = targetPart 
@@ -670,10 +669,9 @@ task.spawn(function()
 end)
 
 -- ==================== 玩家行走速度锁定循环 ====================
--- 这个循环会不断检测并覆盖行走速度，防止死亡后重置
 task.spawn(function()
     while true do
-        task.wait(0.1) -- 降低检测频率，避免不必要的性能消耗
+        task.wait(0.1)
         if customWalkSpeedEnabled then
             local char = localPlayer.Character
             if char then
@@ -682,6 +680,18 @@ task.spawn(function()
                     humanoid.WalkSpeed = customWalkSpeedValue
                 end
             end
+        end
+    end
+end)
+
+-- 监听角色重生，记录默认速度，并在需要时应用自定义速度
+connect(localPlayer.CharacterAdded, function(char)
+    task.wait(0.5)
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        defaultWalkSpeed = humanoid.WalkSpeed -- 记录游戏默认速度
+        if customWalkSpeedEnabled then
+            humanoid.WalkSpeed = customWalkSpeedValue -- 如果开着锁定，立刻应用
         end
     end
 end)
@@ -898,7 +908,6 @@ local button = newButton(row, buttonText, UDim2.new(1, -164, 0.5, -16), UDim2.fr
 button.Activated:Connect(onClick)
 end
 
--- 新增：输入框行，用于设置行走速度
 local function addInputRow(page, text, getValue, setValue)
     local row = createRow(page, text)
     local box = Instance.new("TextBox")
@@ -1052,9 +1061,38 @@ addToggleRow(mainPage, "自瞄锁定", function() return isEnabled end, function
 addToggleRow(mainPage, "飞行系统 (自动穿墙)", function() return flying end, function(value) if value then startFly() else stopFly() end end)
 addStepperRow(mainPage, "飞行速度", function() return tostring(FLY_SPEED) end, function(dir) FLY_SPEED = math.clamp(FLY_SPEED + dir * 10, 10, 300) end)
 
--- 新增：行走速度锁定和输入框
-addToggleRow(mainPage, "锁定行走速度", function() return customWalkSpeedEnabled end, function(value) customWalkSpeedEnabled = value end)
-addInputRow(mainPage, "设置行走速度", function() return customWalkSpeedValue end, function(value) customWalkSpeedValue = value end)
+-- 修改：行走速度锁定开关，关闭时立刻恢复默认速度
+addToggleRow(mainPage, "锁定行走速度", 
+    function() return customWalkSpeedEnabled end, 
+    function(value) 
+        customWalkSpeedEnabled = value 
+        if not value then
+            -- 如果关闭功能，立刻恢复默认速度
+            local char = localPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = defaultWalkSpeed
+                end
+            end
+            setStatus("已恢复默认速度: " .. defaultWalkSpeed)
+        else
+            setStatus("行走速度已锁定为: " .. customWalkSpeedValue)
+        end
+    end
+)
+addInputRow(mainPage, "设置行走速度", function() return customWalkSpeedValue end, function(value) 
+    customWalkSpeedValue = value 
+    setStatus("行走速度已设置为: " .. value)
+    -- 如果当前开着锁定，立刻应用新速度
+    if customWalkSpeedEnabled then
+        local char = localPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then humanoid.WalkSpeed = customWalkSpeedValue end
+        end
+    end
+end)
 
 addCycleRow(mainPage, "相机模式", function() return CAMERA_MODE == "Keep" and "保持" or "背后" end, function() CAMERA_MODE = (CAMERA_MODE == "Behind") and "Keep" or "Behind" end)
 addCycleRow(mainPage, "瞄准部位", function() 
