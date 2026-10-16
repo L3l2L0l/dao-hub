@@ -1,5 +1,5 @@
 -- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP、视觉 和 Setting 面板
--- 优化：提高 UI 优先级，可覆盖 Esc 菜单，并解决游戏强制锁定鼠标无法点击的问题
+-- 优化：提高 UI 优先级，解决按钮跑到窗口外的问题
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中，或者直接用执行器 loadstring
 
 local Players = game:GetService("Players")
@@ -15,10 +15,6 @@ local playerGui = player:WaitForChild("PlayerGui")
 local old = playerGui:FindFirstChild("ResizableUISystem")
 if old then
     old:Destroy()
-end
-if gethui then
-    local oldHui = gethui():FindFirstChild("ResizableUISystem")
-    if oldHui then oldHui:Destroy() end
 end
 -- 清理可能残留的视觉滤镜
 local oldEffect = Lighting:FindFirstChild("Vision_Highlight")
@@ -46,10 +42,8 @@ screenGui.Name = "ResizableUISystem"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.DisplayOrder = 2147483647 
-
-local parentGui = (gethui and gethui()) or playerGui
-screenGui.Parent = parentGui
+screenGui.DisplayOrder = 999999 -- 最大优先级
+screenGui.Parent = playerGui -- 直接挂载到 PlayerGui，避免 gethui 导致的坐标异常
 
 -- ========== 主窗口 ==========
 local main = Instance.new("Frame")
@@ -123,18 +117,38 @@ titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 左侧功能区（严格主窗口内绝对定位） ==========
+-- ========== 左侧固定区域（严格限制在窗口内） ==========
+local sidebar = Instance.new("Frame")
+sidebar.Name = "Sidebar"
+sidebar.BackgroundTransparency = 1
+sidebar.Size = UDim2.new(0, 100, 1, -50) -- 宽度 100，高度填满顶部栏下方
+sidebar.Position = UDim2.new(0, 0, 0, 50) -- 从顶部栏下方开始
+sidebar.Parent = main -- 严格挂载在主窗口下
 
--- 左侧分割线（距离主窗口左侧 80px，紧贴按钮右侧）
+-- 左侧分割线（距离主窗口左侧 80px，正好紧贴按钮右侧）
 local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
-blueLine.Size = UDim2.new(0, 2, 1, -50) -- 高度填满顶部栏下方
-blueLine.Position = UDim2.new(0, 80, 0, 50) -- X=80px，Y=50px
+blueLine.Size = UDim2.new(0, 2, 1, 0)
+blueLine.Position = UDim2.new(0, 80, 0, 0)
 blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
-blueLine.Parent = main
+blueLine.Parent = sidebar
 
--- ESP 按钮（X=0px，紧贴左边缘）
+-- 垂直排列布局，左对齐
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 10)
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+listLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = sidebar
+
+-- 边距：顶部 0，左侧 0（让按钮紧贴窗口左边框）
+local listPadding = Instance.new("UIPadding")
+listPadding.PaddingTop = UDim.new(0, 0)
+listPadding.PaddingLeft = UDim.new(0, 0)
+listPadding.Parent = sidebar
+
+-- ESP 按钮
 local espButton = Instance.new("TextButton")
 espButton.Name = "ESPButton"
 espButton.Text = "ESP"
@@ -144,14 +158,14 @@ espButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 espButton.BorderSizePixel = 0
 espButton.Size = UDim2.new(0, 80, 0, 36)
-espButton.Position = UDim2.new(0, 0, 0, 50) -- 距离左侧 0px（紧贴边框）
-espButton.Parent = main
+espButton.LayoutOrder = 1
+espButton.Parent = sidebar
 
 local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
--- 视觉按钮（X=0px，Y=96px，间隔 10px）
+-- 视觉按钮
 local visionButton = Instance.new("TextButton")
 visionButton.Name = "VisionButton"
 visionButton.Text = "视觉"
@@ -161,14 +175,14 @@ visionButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 visionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 visionButton.BorderSizePixel = 0
 visionButton.Size = UDim2.new(0, 80, 0, 36)
-visionButton.Position = UDim2.new(0, 0, 0, 96) -- 距离左侧 0px
-visionButton.Parent = main
+visionButton.LayoutOrder = 2
+visionButton.Parent = sidebar
 
 local visionBtnCorner = Instance.new("UICorner")
 visionBtnCorner.CornerRadius = UDim.new(0, 6)
 visionBtnCorner.Parent = visionButton
 
--- Setting 按钮（X=0px，Y=142px，间隔 10px）
+-- Setting 按钮
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -178,18 +192,18 @@ settingButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 settingButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 settingButton.BorderSizePixel = 0
 settingButton.Size = UDim2.new(0, 80, 0, 36)
-settingButton.Position = UDim2.new(0, 0, 0, 142) -- 距离左侧 0px
-settingButton.Parent = main
+settingButton.LayoutOrder = 3
+settingButton.Parent = sidebar
 
 local settingBtnCorner = Instance.new("UICorner")
 settingBtnCorner.CornerRadius = UDim.new(0, 6)
 settingBtnCorner.Parent = settingButton
 
--- ========== 右侧内容区域（避让左侧按钮，左移到 100px 处） ==========
+-- ========== 右侧内容区域（避让左侧按钮） ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
-content.Position = UDim2.new(0, 100, 0, 110) -- 按钮在 80px 结束，内容从 100px 开始
+content.Position = UDim2.new(0, 100, 0, 110)
 content.Size = UDim2.new(1, -110, 1, -120)
 content.Parent = main
 
@@ -624,7 +638,6 @@ task.spawn(function()
                     end
                     
                     if targetPart and not interactCache[targetPart] then
-                        -- 极度严格：只有当部件长宽高均不超过 15 时才高亮
                         local size = targetPart.Size
                         local isSmallEnough = (size.X <= 15 and size.Y <= 15 and size.Z <= 15)
                         
@@ -640,7 +653,6 @@ task.spawn(function()
                             hl.Parent = targetPart
                         end
                         
-                        -- 无论大小，都会在物体上方显示“[可交互]”标签
                         local bb = Instance.new("BillboardGui")
                         bb.Name = "Interact_Label"
                         bb.Adornee = targetPart
@@ -864,4 +876,4 @@ task.delay(5, function()
     notification:Destroy()
 end)
 
-print("UI 已加载，设备类型：" .. deviceText)
+print("UI 已加载到最新版本，设备类型：" .. deviceText)
