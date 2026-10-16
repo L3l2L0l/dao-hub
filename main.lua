@@ -123,19 +123,21 @@ titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 左侧功能区 ==========
+-- ========== 左侧功能区（调整布局） ==========
 local leftPanel = Instance.new("Frame")
 leftPanel.Name = "LeftPanel"
 leftPanel.BackgroundTransparency = 1
-leftPanel.Size = UDim2.new(0, 100, 1, -50) -- 宽度 100，高度从顶部栏下方一直延伸到底部
-leftPanel.Position = UDim2.new(0, 0, 0, 50) -- 紧贴顶部栏下方
+-- 宽度加宽到 130，因为按钮从 50 开始，宽度 80，需要容纳到 130 的宽度
+leftPanel.Size = UDim2.new(0, 130, 1, -50) 
+leftPanel.Position = UDim2.new(0, 0, 0, 50) 
 leftPanel.Parent = main
 
--- 左侧右侧的贯穿蓝线（紧贴面板最右侧，也就是与按钮右侧相切）
+-- 左侧分割线（位于距离主窗口左侧 80px 处）
 local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
 blueLine.Size = UDim2.new(0, 2, 1, 0)
-blueLine.Position = UDim2.new(1, -2, 0, 0) -- 位于 leftPanel 最右边缘
+-- 关键修改：改为距离主窗口左侧 80px
+blueLine.Position = UDim2.new(0, 80, 0, 0) 
 blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = leftPanel
@@ -143,15 +145,15 @@ blueLine.Parent = leftPanel
 -- 统一列表布局，设置为左对齐
 local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 10)
-listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left -- 关键修改：左对齐
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
 listLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = leftPanel
 
--- 边距设置：顶到最上面（0），左边距 10px
+-- 边距设置：顶部 0，左侧 50（让按钮起始于距离主窗口 50px 处）
 local listPadding = Instance.new("UIPadding")
-listPadding.PaddingTop = UDim.new(0, 0) -- 关键修改：顶到最上面分割线下面
-listPadding.PaddingLeft = UDim.new(0, 10) -- 左侧留出 10px 边距，贴合窗口左边
+listPadding.PaddingTop = UDim.new(0, 0)
+listPadding.PaddingLeft = UDim.new(0, 50) -- 关键修改：移动到距离左侧 50px
 listPadding.Parent = leftPanel
 
 -- ESP 按钮
@@ -205,12 +207,13 @@ local settingBtnCorner = Instance.new("UICorner")
 settingBtnCorner.CornerRadius = UDim.new(0, 6)
 settingBtnCorner.Parent = settingButton
 
--- ========== 右侧内容区域 ==========
+-- ========== 右侧内容区域（避让加宽的左侧按钮） ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
-content.Position = UDim2.new(0, 110, 0, 110)
-content.Size = UDim2.new(1, -120, 1, -120)
+-- 关键修改：因为按钮延伸到了 130px，所以内容区右移到 140px 开始
+content.Position = UDim2.new(0, 140, 0, 110) 
+content.Size = UDim2.new(1, -150, 1, -120)
 content.Parent = main
 
 -- 默认页面
@@ -615,7 +618,7 @@ local function cleanupESP()
     espCache = {}
 end
 
--- ========== 核心交互 ESP 逻辑（极度严格版，只高亮小部件） ==========
+-- ========== 核心交互 ESP 逻辑 ==========
 local interactCache = {}
 
 local function cleanupInteractESP()
