@@ -123,15 +123,15 @@ titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 左侧新功能区 ==========
+-- ========== 左侧功能区（统一在这里排列按钮） ==========
 local leftPanel = Instance.new("Frame")
 leftPanel.Name = "LeftPanel"
 leftPanel.BackgroundTransparency = 1
--- 关键修复：高度减去 100，为底部的 Setting 按钮留出充足的专属空间，避免重叠
-leftPanel.Size = UDim2.new(0, 100, 1, -100)
+leftPanel.Size = UDim2.new(0, 100, 1, -50) -- 高度从顶部栏下方一直延伸到最底部
 leftPanel.Position = UDim2.new(0, 0, 0, 50)
 leftPanel.Parent = main
 
+-- 左侧右侧的贯穿蓝线
 local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
 blueLine.Size = UDim2.new(0, 2, 1, 0)
@@ -140,13 +140,15 @@ blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = leftPanel
 
+-- 统一列表布局，设置间隔为 10px
 local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 10)
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 listLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder -- 开启排序
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Parent = leftPanel
 
+-- 顶部留白
 local listPadding = Instance.new("UIPadding")
 listPadding.PaddingTop = UDim.new(0, 15)
 listPadding.Parent = leftPanel
@@ -168,7 +170,7 @@ local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
--- 视觉按钮（新增）
+-- 视觉按钮
 local visionButton = Instance.new("TextButton")
 visionButton.Name = "VisionButton"
 visionButton.Text = "视觉"
@@ -185,7 +187,7 @@ local visionBtnCorner = Instance.new("UICorner")
 visionBtnCorner.CornerRadius = UDim.new(0, 6)
 visionBtnCorner.Parent = visionButton
 
--- Setting 按钮（左下角固定）
+-- Setting 按钮（现在完全按顺序排列在视觉下方，间距 10px）
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -194,10 +196,9 @@ settingButton.Font = Enum.Font.GothamBold
 settingButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 settingButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 settingButton.BorderSizePixel = 0
-settingButton.AnchorPoint = Vector2.new(0.5, 1)
-settingButton.Position = UDim2.new(0, 50, 1, -15)
 settingButton.Size = UDim2.new(0, 80, 0, 36)
-settingButton.Parent = main
+settingButton.LayoutOrder = 3
+settingButton.Parent = leftPanel
 
 local settingBtnCorner = Instance.new("UICorner")
 settingBtnCorner.CornerRadius = UDim.new(0, 6)
@@ -370,9 +371,7 @@ createToggleButton(visionList, "删除地图黑暗效果", "RemoveDarkness", Col
 
 -- ========== 视觉核心逻辑 ==========
 local highlightEffect = nil
-local originalLighting = {
-    Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil
-}
+local originalLighting = { Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil }
 
 updateVisuals = function()
     -- 1. 高亮模式
@@ -615,7 +614,7 @@ local function cleanupESP()
     espCache = {}
 end
 
--- ========== 核心交互 ESP 逻辑（极度严格版） ==========
+-- ========== 核心交互 ESP 逻辑（极度严格版，只高亮小部件） ==========
 local interactCache = {}
 
 local function cleanupInteractESP()
@@ -644,7 +643,7 @@ task.spawn(function()
                     end
                     
                     if targetPart and not interactCache[targetPart] then
-                        -- 关键修复：仅当部件最大尺寸小于 15 时才进行高亮（宝箱大小通常小于10）
+                        -- 极度严格：只有当部件最大尺寸不超过 15 时才高亮（宝箱大小通常小于10）
                         -- 这样哪怕提示挂在地板或墙壁上，也不会全屏变绿
                         local size = targetPart.Size
                         local isSmallEnough = (size.X <= 15 and size.Y <= 15 and size.Z <= 15)
