@@ -8,12 +8,74 @@ end
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
 
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
--- 全局连接集中管理
+-- ==================== 防重复执行检测 ====================
+local function showDuplicateAlert()
+    local alertGui = Instance.new("ScreenGui")
+    alertGui.Name = "DaoHub_Alert"
+    alertGui.ResetOnSpawn = false
+    alertGui.DisplayOrder = 2147483647
+    alertGui.Parent = (gethui and gethui()) or playerGui
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 280, 0, 50)
+    frame.Position = UDim2.new(1, -20, 1, -20)
+    frame.AnchorPoint = Vector2.new(1, 1)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    frame.BackgroundTransparency = 0.1
+    frame.BorderSizePixel = 0
+    frame.Parent = alertGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(100, 100, 120)
+    stroke.Thickness = 1
+    stroke.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 1, -20)
+    label.Position = UDim2.new(0, 10, 0, 10)
+    label.BackgroundTransparency = 1
+    label.Text = "⚠️ 脚本正在执行中,请勿重复执行"
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 14
+    label.Font = Enum.Font.GothamBold
+    label.TextWrapped = true
+    label.Parent = frame
+    
+    task.delay(5, function()
+        alertGui:Destroy()
+    end)
+end
+
+local function isAlreadyRunning()
+    if playerGui:FindFirstChild("HeadLockGui") or playerGui:FindFirstChild("HeadLockOverlay") then 
+        return true 
+    end
+    local success, coreGui = pcall(function() return gethui() end)
+    if success and coreGui then
+        if coreGui:FindFirstChild("HeadLockGui") or coreGui:FindFirstChild("HeadLockOverlay") then 
+            return true 
+        end
+    end
+    return false
+end
+
+if isAlreadyRunning() then
+    showDuplicateAlert()
+    return 
+end
+-- ========================================================
+
 local connections = {}
 local function connect(signal, callback)
 	local connection = signal:Connect(callback)
@@ -55,7 +117,7 @@ cleanupOldUI()
 
 -- ==================== 设置 ====================
 local MENU_KEY = Enum.KeyCode.RightShift 
-local MINIMIZE_KEY = Enum.KeyCode.G -- 修改：缩小窗口默认快捷键改为 G
+local MINIMIZE_KEY = Enum.KeyCode.G 
 local AIM_BUTTON = Enum.UserInputType.MouseButton2 
 local START_ENABLED = false  
 local CIRCLE_RADIUS = 150    
@@ -63,10 +125,8 @@ local KEEP_ANGLE = 70
 local MAX_DISTANCE = 300     
 local ESP_MAX_DISTANCE = 1000 
 local SMOOTH_SPEED = 25      
-local SWITCH_INTERVAL = 0.4  
 local LOCK_BLEND_TIME = 0.12 
 
-local AIM_MODE = "Both"
 local CAMERA_MODE = "Keep" 
 local BEHIND_DISTANCE = 12  
 local BEHIND_HEIGHT = 5     
@@ -75,21 +135,19 @@ local KEEP_COS = math.cos(math.rad(KEEP_ANGLE))
 
 local scriptFunctionsWorking = true
 
--- 热键重绑定状态
 local listeningFor = nil
 local bindIgnoreUntil = 0
 local function inputBlocked()
 	return listeningFor ~= nil or os.clock() < bindIgnoreUntil
 end
 
--- 状态
 local isEnabled = START_ENABLED
 local showCircle = false    
 local showBoxes = false     
 local showNames = false     
 local highlightInteractables = false 
 local isAiming = false            
-local lockedTarget = nil          
+local lockedTarget = nil 
 local cameraOffset = Vector3.zero 
 local lastDirection = Vector3.new(0, 0, -1)
 local lockedFov = nil                  
@@ -98,6 +156,11 @@ local lockStartCFrame = CFrame.new()
 local lockTime = 0                     
 local smoothedLength = nil             
 local viewDirection = Vector3.new(0, 0, -1) 
+
+-- 行走速度相关变量
+local customWalkSpeedEnabled = false
+local customWalkSpeedValue = 100 
+local defaultWalkSpeed = 16      
 
 local pixelHitboxOn = false
 local originalSizes = {}
@@ -123,19 +186,13 @@ local function getTorso(character)
 	return (torso and torso:IsA("BasePart")) and torso or nil
 end
 
+-- 修改：始终优先返回头部坐标
 local function getAimPosition(character)
 	local head = getHead(character)
+	if head then return head.Position end
 	local torso = getTorso(character)
-	local part
-	if AIM_MODE == "Head" then
-		part = head or torso
-	elseif AIM_MODE == "Torso" then
-		part = torso or head
-	else
-		local useTorso = math.floor(os.clock() / SWITCH_INTERVAL) % 2 == 1
-		part = (useTorso and torso) or head or torso
-	end
-	return part and part.Position or Vector3.zero
+	if torso then return torso.Position end
+	return Vector3.zero
 end
 
 local function isEnemy(player)
@@ -144,12 +201,12 @@ local function isEnemy(player)
 	return player.Team ~= myTeam
 end
 
-local function isValidTarget(player)
-	return player ~= localPlayer and isEnemy(player) and isAlive(player.Character) and getHead(player.Character) ~= nil
+local function isValidTarget(character)
+	return character ~= localPlayer.Character and isAlive(character) and getHead(character) ~= nil
 end
 
-local function distanceTo(player, fromPosition)
-	return (player.Character.HumanoidRootPart.Position - fromPosition).Magnitude
+local function distanceTo(character, fromPosition)
+	return (character.HumanoidRootPart.Position - fromPosition).Magnitude
 end
 
 local function isInCone(origin, position, cosLimit)
@@ -166,24 +223,51 @@ local function isInCircle(camera, position)
 	return (Vector2.new(point.X, point.Y) - center).Magnitude <= CIRCLE_RADIUS
 end
 
-local function findClosestEnemy(camera, origin)
-	local best = nil
-	local bestDistance = MAX_DISTANCE
-	for _, player in ipairs(Players:GetPlayers()) do
-		if isValidTarget(player) then
-			local character = player.Character
-			local head = getHead(character)
-			local torso = getTorso(character)
-			if isInCircle(camera, head.Position) or (torso and isInCircle(camera, torso.Position)) then
-				local distance = distanceTo(player, origin)
-				if distance < bestDistance then
-					best = player
-					bestDistance = distance
-				end
-			end
-		end
-	end
-	return best
+-- 获取所有目标（真实玩家 + 机器人/NPC）
+local function getAllTargets()
+    local targets = {}
+    
+    -- 1. 真实玩家
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and isEnemy(player) and isAlive(player.Character) then
+            local head = getHead(player.Character)
+            if head then
+                table.insert(targets, {character = player.Character, isPlayer = true, name = player.DisplayName, playerObj = player})
+            end
+        end
+    end
+    
+    -- 2. 遍历 workspace 寻找机器人/NPC
+    for _, model in ipairs(workspace:GetChildren()) do
+        if model:IsA("Model") and model ~= localPlayer.Character and not Players:GetPlayerFromCharacter(model) then
+            if isAlive(model) then
+                table.insert(targets, {character = model, isPlayer = false, name = model.Name, playerObj = nil})
+            end
+        end
+    end
+    
+    return targets
+end
+
+local function findClosestTarget(camera, origin)
+    local best = nil
+    local bestDistance = MAX_DISTANCE
+    local allTargets = getAllTargets()
+    
+    for _, target in ipairs(allTargets) do
+        local character = target.character
+        local head = getHead(character)
+        local torso = getTorso(character)
+        
+        if isInCircle(camera, head.Position) or (torso and isInCircle(camera, torso.Position)) then
+            local distance = distanceTo(character, origin)
+            if distance < bestDistance then
+                best = target
+                bestDistance = distance
+            end
+        end
+    end
+    return best
 end
 
 local function clipToWalls(origin, desired, ignoreList)
@@ -247,7 +331,7 @@ RunService:BindToRenderStep("HeadLockEnemyCamera", Enum.RenderPriority.Camera.Va
 	local target
 
 	if lockedTarget then
-		if not isValidTarget(lockedTarget) or distanceTo(lockedTarget, origin) > MAX_DISTANCE or not isInCone(origin, getHead(lockedTarget.Character).Position, KEEP_COS) then
+		if not isValidTarget(lockedTarget.character) or distanceTo(lockedTarget.character, origin) > MAX_DISTANCE or not isInCone(origin, getHead(lockedTarget.character).Position, KEEP_COS) then
 			stopAiming()
 			return
 		end
@@ -257,7 +341,7 @@ RunService:BindToRenderStep("HeadLockEnemyCamera", Enum.RenderPriority.Camera.Va
 		local flatLook = Vector3.new(look.X, 0, look.Z)
 		if flatLook.Magnitude > 0.1 then viewDirection = flatLook.Unit end
 
-		target = findClosestEnemy(camera, origin)
+		target = findClosestTarget(camera, origin)
 		if not target then return end
 
 		cameraOffset = camera.CFrame.Position - myPosition
@@ -265,13 +349,13 @@ RunService:BindToRenderStep("HeadLockEnemyCamera", Enum.RenderPriority.Camera.Va
 		lockTime = 0
 		smoothedLength = nil
 		lastDirection = viewDirection
-		aimPoint = getAimPosition(target.Character)
+		aimPoint = getAimPosition(target.character)
 		lockedFov = camera.FieldOfView
 		camera.CameraType = Enum.CameraType.Scriptable
 		lockedTarget = target
 	end
 
-	local targetCharacter = target.Character
+	local targetCharacter = target.character
 	local goalPoint = getAimPosition(targetCharacter)
 	local alpha = SMOOTH_SPEED > 0 and (1 - math.exp(-SMOOTH_SPEED * dt)) or 1
 	aimPoint = aimPoint:Lerp(goalPoint, alpha)
@@ -383,7 +467,6 @@ connect(localPlayer.Idled, function()
 end)
 
 -- Fullbright
-local Lighting = game:GetService("Lighting")
 local fullbrightWanted = false
 local lightingBackup = nil
 local function restoreLighting()
@@ -428,9 +511,9 @@ table.insert(CORNER_SIGNS, Vector3.new(x, y, z))
 end
 end
 end
-local function createEsp(player)
+local function createEsp(name)
 local box = Instance.new("Frame")
-box.Name = "Esp_" .. player.Name
+box.Name = "Esp_" .. name
 box.BackgroundTransparency = 1
 box.BorderSizePixel = 0
 box.Visible = false
@@ -450,8 +533,8 @@ label.TextColor3 = Color3.fromRGB(255, 255, 255)
 label.TextStrokeTransparency = 0.3
 label.Text = ""
 label.Parent = box
-espObjects[player] = { box = box, stroke = stroke, label = label }
-return espObjects[player]
+espObjects[name] = { box = box, stroke = stroke, label = label }
+return espObjects[name]
 end
 local function updateEsp()
 local camera = workspace.CurrentCamera
@@ -462,56 +545,56 @@ end
 local active = showBoxes or showNames
 local myCharacter = localPlayer.Character
 local myRoot = myCharacter and myCharacter:FindFirstChild("HumanoidRootPart")
-for _, player in ipairs(Players:GetPlayers()) do
-if player ~= localPlayer then
-local object = espObjects[player]
-local visible = false
-if active and isValidTarget(player) then
-local character = player.Character
-local root = character.HumanoidRootPart
-local distance = myRoot and (root.Position - myRoot.Position).Magnitude or 0
-if distance <= ESP_MAX_DISTANCE then
-local boxCFrame, boxSize = character:GetBoundingBox()
-local minX, minY = math.huge, math.huge
-local maxX, maxY = -math.huge, -math.huge
-local allInFront = true
-for _, sign in ipairs(CORNER_SIGNS) do
-local point = camera:WorldToViewportPoint(boxCFrame:PointToWorldSpace(sign * boxSize / 2))
-if point.Z <= 0 then
-allInFront = false
-break
+
+local allTargets = getAllTargets()
+local activeNames = {}
+
+for _, target in ipairs(allTargets) do
+    local character = target.character
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if root and myRoot then
+        local distance = (root.Position - myRoot.Position).Magnitude
+        if distance <= ESP_MAX_DISTANCE then
+            local boxCFrame, boxSize = character:GetBoundingBox()
+            local minX, minY = math.huge, math.huge
+            local maxX, maxY = -math.huge, -math.huge
+            local allInFront = true
+            for _, sign in ipairs(CORNER_SIGNS) do
+                local point = camera:WorldToViewportPoint(boxCFrame:PointToWorldSpace(sign * boxSize / 2))
+                if point.Z <= 0 then
+                    allInFront = false
+                    break
+                end
+                minX = math.min(minX, point.X)
+                minY = math.min(minY, point.Y)
+                maxX = math.max(maxX, point.X)
+                maxY = math.max(maxY, point.Y)
+            end
+            if allInFront then
+                activeNames[target.name] = true
+                local object = espObjects[target.name]
+                if not object then object = createEsp(target.name) end
+                object.box.Position = UDim2.fromOffset(minX, minY)
+                object.box.Size = UDim2.fromOffset(maxX - minX, maxY - minY)
+                object.box.Visible = true
+                object.stroke.Enabled = showBoxes
+                object.stroke.Color = (lockedTarget and lockedTarget.name == target.name) and LOCKED_COLOR or ESP_COLOR
+                object.label.Visible = showNames
+                object.label.Text = target.name
+            end
+        end
+    end
 end
-minX = math.min(minX, point.X)
-minY = math.min(minY, point.Y)
-maxX = math.max(maxX, point.X)
-maxY = math.max(maxY, point.Y)
-end
-if allInFront then
-visible = true
-if not object then object = createEsp(player) end
-object.box.Position = UDim2.fromOffset(minX, minY)
-object.box.Size = UDim2.fromOffset(maxX - minX, maxY - minY)
-object.stroke.Enabled = showBoxes
-object.stroke.Color = (lockedTarget == player) and LOCKED_COLOR or ESP_COLOR
-object.label.Visible = showNames
-object.label.Text = player.DisplayName
+
+for name, obj in pairs(espObjects) do
+    if not activeNames[name] then
+        obj.box.Visible = false
+    end
 end
 end
-end
-if object then object.box.Visible = visible end
-end
-end
-end
-connect(Players.PlayerRemoving, function(player)
-local object = espObjects[player]
-if object then
-object.box:Destroy()
-espObjects[player] = nil
-end
-end)
 RunService:BindToRenderStep("HeadLockEsp", Enum.RenderPriority.Camera.Value + 2, updateEsp)
 
--- ==================== 交互 ESP (修改版) ====================
+-- ==================== 交互 ESP ====================
 local interactCache = {}
 local function cleanupInteractESP()
     for _, data in pairs(interactCache) do
@@ -529,64 +612,66 @@ task.spawn(function()
         else
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("ProximityPrompt") then
-                    -- 寻找依附的实体（优先找模型）
                     local targetPart = nil
-                    local targetModel = nil
                     if obj.Parent:IsA("BasePart") then
                         targetPart = obj.Parent
-                        targetModel = targetPart:FindFirstAncestorOfClass("Model")
                     elseif obj.Parent:IsA("Attachment") and obj.Parent.Parent:IsA("BasePart") then
                         targetPart = obj.Parent.Parent
-                        targetModel = targetPart:FindFirstAncestorOfClass("Model")
                     end
                     
-                    -- 确定高亮对象：优先高亮整个模型，否则高亮部件
-                    local highlightTarget = targetModel or targetPart
-                    
-                    if highlightTarget and not interactCache[highlightTarget] then
-                        -- 获取显示文本：优先使用 ActionText，其次 ObjectText，再其次模型名/部件名
-                        local displayText = "可交互"
-                        if obj.ActionText and obj.ActionText ~= "" then
-                            displayText = obj.ActionText
-                        elseif obj.ObjectText and obj.ObjectText ~= "" then
-                            displayText = obj.ObjectText
-                        elseif targetModel then
-                            displayText = targetModel.Name
-                        elseif targetPart then
-                            displayText = targetPart.Name
+                    if targetPart then
+                        local highlightTarget = targetPart
+                        local targetModel = targetPart:FindFirstAncestorOfClass("Model")
+                        
+                        if targetModel then
+                            local extents = targetModel:GetExtentsSize()
+                            if extents.X < 100 and extents.Y < 100 and extents.Z < 100 then
+                                highlightTarget = targetModel
+                            end
                         end
                         
-                        -- 高亮整个实体
-                        local hl = Instance.new("Highlight")
-                        hl.Name = "Interact_Highlight"
-                        hl.FillColor = Color3.fromRGB(0, 255, 100)
-                        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                        hl.FillTransparency = 0.4
-                        hl.OutlineTransparency = 0
-                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                        hl.Adornee = highlightTarget
-                        hl.Parent = highlightTarget
-                        
-                        -- 在实体上方生成文本标签
-                        local bb = Instance.new("BillboardGui")
-                        bb.Name = "Interact_Label"
-                        bb.Adornee = highlightTarget
-                        bb.Size = UDim2.new(0, 200, 0, 30)
-                        bb.StudsOffset = Vector3.new(0, 4, 0)
-                        bb.AlwaysOnTop = true
-                        bb.Parent = highlightTarget
-                        
-                        local text = Instance.new("TextLabel")
-                        text.Text = "[" .. displayText .. "]"
-                        text.BackgroundTransparency = 1
-                        text.Size = UDim2.new(1, 0, 1, 0)
-                        text.Font = Enum.Font.GothamBold
-                        text.TextSize = 14
-                        text.TextColor3 = Color3.fromRGB(0, 255, 100)
-                        text.TextStrokeTransparency = 0
-                        text.Parent = bb
-                        
-                        interactCache[highlightTarget] = {Highlight = hl, Label = bb}
+                        if not interactCache[highlightTarget] then
+                            local displayText = "可交互"
+                            if obj.ActionText and obj.ActionText ~= "" then
+                                displayText = obj.ActionText
+                            elseif obj.ObjectText and obj.ObjectText ~= "" then
+                                displayText = obj.ObjectText
+                            elseif targetModel then
+                                displayText = targetModel.Name
+                            elseif targetPart then
+                                displayText = targetPart.Name
+                            end
+                            
+                            local hl = Instance.new("Highlight")
+                            hl.Name = "Interact_Highlight"
+                            hl.FillColor = Color3.fromRGB(0, 255, 100)
+                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            hl.FillTransparency = 0.4
+                            hl.OutlineTransparency = 0
+                            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                            hl.Adornee = highlightTarget
+                            hl.Parent = highlightTarget
+                            
+                            local bb = Instance.new("BillboardGui")
+                            bb.Name = "Interact_Label"
+                            bb.Adornee = targetPart 
+                            bb.Size = UDim2.new(0, 200, 0, 30)
+                            bb.StudsOffset = Vector3.new(0, 3.5, 0)
+                            bb.AlwaysOnTop = true
+                            bb.Parent = highlightTarget
+                            
+                            local text = Instance.new("TextLabel")
+                            text.Text = "[" .. displayText .. "]"
+                            text.BackgroundTransparency = 1
+                            text.Size = UDim2.new(1, 0, 1, 0)
+                            text.Font = Enum.Font.GothamBold
+                            text.TextSize = 14
+                            text.TextColor3 = Color3.fromRGB(0, 255, 100)
+                            text.TextStrokeTransparency = 0
+                            text.Parent = bb
+                            
+                            interactCache[highlightTarget] = {Highlight = hl, Label = bb}
+                        end
                     end
                 end
             end
@@ -601,6 +686,34 @@ task.spawn(function()
         end
     end
 end)
+
+-- ==================== 玩家行走速度锁定循环 ====================
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if customWalkSpeedEnabled then
+            local char = localPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.WalkSpeed ~= customWalkSpeedValue then
+                    humanoid.WalkSpeed = customWalkSpeedValue
+                end
+            end
+        end
+    end
+end)
+
+connect(localPlayer.CharacterAdded, function(char)
+    task.wait(0.5)
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        defaultWalkSpeed = humanoid.WalkSpeed
+        if customWalkSpeedEnabled then
+            humanoid.WalkSpeed = customWalkSpeedValue
+        end
+    end
+end)
+-- ==========================================================
 
 -- ==================== GUI 控制面板 ====================
 local COLOR_BG = Color3.fromRGB(20, 20, 26)
@@ -664,7 +777,7 @@ window.Active = true
 window.Parent = gui
 addCorner(window, 12)
 
--- ================== 标题栏：彩虹色 Dao hub ==================
+-- ================== 标题栏 ==================
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, TITLE_H)
 titleBar.BackgroundColor3 = COLOR_SIDEBAR
@@ -812,6 +925,31 @@ local row = createRow(page, text)
 local button = newButton(row, buttonText, UDim2.new(1, -164, 0.5, -16), UDim2.fromOffset(152, 32), COLOR_ACCENT, 14)
 button.Activated:Connect(onClick)
 end
+
+local function addInputRow(page, text, getValue, setValue)
+    local row = createRow(page, text)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0, 80, 0, 34)
+    box.Position = UDim2.new(1, -95, 0.5, -17)
+    box.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    box.BorderSizePixel = 0
+    box.Font = Enum.Font.GothamBold
+    box.TextSize = 16
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.Text = tostring(getValue())
+    box.Parent = row
+    addCorner(box, 6)
+    
+    box.FocusLost:Connect(function()
+        local num = tonumber(box.Text)
+        if num and num > 0 then
+            setValue(num)
+        else
+            box.Text = tostring(getValue())
+        end
+    end)
+end
+
 refreshGui = function()
 for _, refresh in ipairs(refreshers) do refresh() end
 circleFrame.Visible = showCircle
@@ -819,11 +957,11 @@ statsLabel.Visible = showStats
 circleFrame.Size = UDim2.fromOffset(CIRCLE_RADIUS * 2, CIRCLE_RADIUS * 2)
 end
 
--- ==================== 飞行系统 (含 Noclip) ====================
+-- ==================== 飞行系统 ====================
 local FLY_SPEED = 60
 local flying = false
 local flyVelocity, flyGyro
-local flyNoclipConnection = nil -- 新增：用于自动穿墙
+local flyNoclipConnection = nil
 
 local function stopFly()
 flying = false
@@ -831,7 +969,6 @@ pcall(function() RunService:UnbindFromRenderStep("HeadLockFly") end)
 if flyVelocity then flyVelocity:Destroy() flyVelocity = nil end
 if flyGyro then flyGyro:Destroy() flyGyro = nil end
 
--- 关闭 Noclip 并恢复碰撞
 if flyNoclipConnection then flyNoclipConnection:Disconnect() flyNoclipConnection = nil end
 local character = localPlayer.Character
 if character then
@@ -863,7 +1000,6 @@ flyGyro.P = 1e4
 flyGyro.CFrame = root.CFrame
 flyGyro.Parent = root
 
--- 开启自动 Noclip
 if flyNoclipConnection then flyNoclipConnection:Disconnect() end
 flyNoclipConnection = RunService.Stepped:Connect(function()
     if localPlayer.Character then
@@ -942,16 +1078,39 @@ end
 addToggleRow(mainPage, "自瞄锁定", function() return isEnabled end, function(value) setEnabled(value) end)
 addToggleRow(mainPage, "飞行系统 (自动穿墙)", function() return flying end, function(value) if value then startFly() else stopFly() end end)
 addStepperRow(mainPage, "飞行速度", function() return tostring(FLY_SPEED) end, function(dir) FLY_SPEED = math.clamp(FLY_SPEED + dir * 10, 10, 300) end)
-addCycleRow(mainPage, "相机模式", function() return CAMERA_MODE == "Keep" and "保持" or "背后" end, function() CAMERA_MODE = (CAMERA_MODE == "Behind") and "Keep" or "Behind" end)
-addCycleRow(mainPage, "瞄准部位", function() 
-    if AIM_MODE == "Both" then return "混合" 
-    elseif AIM_MODE == "Head" then return "头部" 
-    else return "躯干" end 
-end, function()
-    if AIM_MODE == "Both" then AIM_MODE = "Head" 
-    elseif AIM_MODE == "Head" then AIM_MODE = "Torso" 
-    else AIM_MODE = "Both" end
+
+addToggleRow(mainPage, "锁定行走速度", 
+    function() return customWalkSpeedEnabled end, 
+    function(value) 
+        customWalkSpeedEnabled = value 
+        if not value then
+            local char = localPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = defaultWalkSpeed
+                end
+            end
+            setStatus("已恢复默认速度: " .. defaultWalkSpeed)
+        else
+            setStatus("行走速度已锁定为: " .. customWalkSpeedValue)
+        end
+    end
+)
+addInputRow(mainPage, "设置行走速度", function() return customWalkSpeedValue end, function(value) 
+    customWalkSpeedValue = value 
+    setStatus("行走速度已设置为: " .. value)
+    if customWalkSpeedEnabled then
+        local char = localPlayer.Character
+        if char then
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if humanoid then humanoid.WalkSpeed = customWalkSpeedValue end
+        end
+    end
 end)
+
+addCycleRow(mainPage, "相机模式", function() return CAMERA_MODE == "Keep" and "保持" or "背后" end, function() CAMERA_MODE = (CAMERA_MODE == "Behind") and "Keep" or "Behind" end)
+-- 移除：瞄准部位选项
 addStepperRow(mainPage, "准星大小", function() return tostring(CIRCLE_RADIUS) end, function(dir) CIRCLE_RADIUS = math.clamp(CIRCLE_RADIUS + dir * 10, 40, 600) refreshGui() end)
 
 -- ==================== 视觉 ====================
@@ -1183,7 +1342,7 @@ addActionRow(settingsPage, "重置快捷键", "默认", function()
 listeningFor = nil
 bindIgnoreUntil = os.clock() + 0.2
 MENU_KEY = Enum.KeyCode.RightShift
-MINIMIZE_KEY = Enum.KeyCode.G -- 修改：重置时默认键也变为 G
+MINIMIZE_KEY = Enum.KeyCode.G
 setStatus("快捷键已重置为默认。")
 refreshGui()
 updatePanel()
