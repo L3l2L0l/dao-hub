@@ -116,7 +116,7 @@ titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 左侧分割线（直接挂载在 main 下） ==========
+-- ========== 左侧分割线 ==========
 local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
 blueLine.Size = UDim2.new(0, 2, 1, -50)
@@ -125,7 +125,7 @@ blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = main
 
--- ========== 左侧功能按钮（绝对定位） ==========
+-- ========== 左侧功能按钮（严格按照 上一个Y + 46 递增） ==========
 
 -- ESP 按钮（Y=50）
 local espButton = Instance.new("TextButton")
@@ -161,7 +161,7 @@ local visionBtnCorner = Instance.new("UICorner")
 visionBtnCorner.CornerRadius = UDim.new(0, 6)
 visionBtnCorner.Parent = visionButton
 
--- 通用按钮（Y=142）
+-- 通用按钮（Y=142，注意这里是视觉下面 10px）
 local generalButton = Instance.new("TextButton")
 generalButton.Name = "GeneralButton"
 generalButton.Text = "通用"
@@ -171,7 +171,7 @@ generalButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 generalButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 generalButton.BorderSizePixel = 0
 generalButton.Size = UDim2.new(0, 80, 0, 36)
-generalButton.Position = UDim2.new(0, 0, 0, 142)
+generalButton.Position = UDim2.new(0, 0, 0, 142) 
 generalButton.Parent = main
 
 local generalBtnCorner = Instance.new("UICorner")
@@ -306,7 +306,7 @@ local visionLayout = Instance.new("UIListLayout")
 visionLayout.Padding = UDim.new(0, 12)
 visionLayout.Parent = visionList
 
--- ========== 通用页面（新增） ==========
+-- ========== 通用页面 ==========
 local generalPage = Instance.new("Frame")
 generalPage.Name = "GeneralPage"
 generalPage.BackgroundTransparency = 1
@@ -369,7 +369,6 @@ local function createToggleButton(parent, text, key, onColor, customState)
             btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
         end
         
-        -- 针对通用功能，触发具体的逻辑更新
         if key == "Fly" and updateFly then updateFly() end
         if key == "AntiFling" and updateAntiFling then updateAntiFling() end
         if (key == "HighlightMode" or key == "RemoveDarkness") and updateVisuals then updateVisuals() end
@@ -387,7 +386,7 @@ createToggleButton(visionList, "开启高亮模式", "HighlightMode", Color3.fro
 createToggleButton(visionList, "删除地图黑暗效果", "RemoveDarkness", Color3.fromRGB(255, 100, 100))
 
 -- ========== 通用功能逻辑构建 ==========
--- 1. 修改行走速度与跳跃高度（输入框形式）
+-- 1. 修改行走速度与跳跃高度
 local function createSpeedInput(parent, labelText, defaultValue, callback)
     local container = Instance.new("Frame")
     container.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
@@ -492,7 +491,6 @@ flingCorner.CornerRadius = UDim.new(0, 6)
 flingCorner.Parent = flingBtn
 
 flingBtn.MouseButton1Click:Connect(function()
-    -- 简单的本地甩飞逻辑，尝试让周围玩家转起来
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = p.Character.HumanoidRootPart
@@ -510,7 +508,6 @@ end)
 createToggleButton(generalList, "防甩飞", "AntiFling", Color3.fromRGB(255, 150, 0), generalState)
 
 -- ========== 核心通用逻辑实现 ==========
--- 飞行逻辑
 local flyBodyVelocity = nil
 local flyBodyGyro = nil
 local flyConnection = nil
@@ -535,9 +532,7 @@ updateFly = function()
 
         if flyConnection then flyConnection:Disconnect() end
         flyConnection = RunService.RenderStepped:Connect(function()
-            if not generalState.Fly or not char.Parent then
-                return
-            end
+            if not generalState.Fly or not char.Parent then return end
             local camera = workspace.CurrentCamera
             local moveDirection = Vector3.new(0, 0, 0)
 
@@ -562,15 +557,12 @@ updateFly = function()
     end
 end
 
--- 角色重生时重新应用飞行
 player.CharacterAdded:Connect(function()
     task.wait(1)
     if generalState.Fly then updateFly() end
 end)
 
--- 防甩飞逻辑
 local antiFlingConnection = nil
-
 updateAntiFling = function()
     if generalState.AntiFling then
         if antiFlingConnection then antiFlingConnection:Disconnect() end
@@ -578,11 +570,9 @@ updateAntiFling = function()
             local char = player.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
-                -- 如果角速度异常，重置
                 if hrp.AssemblyAngularVelocity.Magnitude > 100 then
                     hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                 end
-                -- 如果速度异常，重置
                 if hrp.AssemblyLinearVelocity.Magnitude > 500 then
                     hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                 end
@@ -598,7 +588,6 @@ local highlightEffect = nil
 local originalLighting = { Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil }
 
 updateVisuals = function()
-    -- 1. 高亮模式
     if visualState.HighlightMode then
         if not highlightEffect or not highlightEffect.Parent then
             highlightEffect = Instance.new("ColorCorrectionEffect")
@@ -615,7 +604,6 @@ updateVisuals = function()
         end
     end
 
-    -- 2. 删除黑暗效果
     if visualState.RemoveDarkness then
         if not originalLighting.Brightness then
             originalLighting.Brightness = Lighting.Brightness
@@ -641,7 +629,6 @@ updateVisuals = function()
                 Lighting.ClockTime = originalLighting.ClockTime
                 Lighting.FogEnd = originalLighting.FogEnd
             end)
-            
             originalLighting = { Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil }
         end
     end
@@ -1095,4 +1082,4 @@ task.delay(5, function()
     notification:Destroy()
 end)
 
-print("✅ UI 已成功加载通用版，设备类型：" .. deviceText)
+print("✅ UI 已加载，设备类型：" .. deviceText)
