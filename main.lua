@@ -1,4 +1,4 @@
--- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP、视觉 和 Setting 面板
+-- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP、视觉、通用 和 Setting 面板
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中，或者直接用执行器 loadstring
 
 local Players = game:GetService("Players")
@@ -42,7 +42,7 @@ screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.DisplayOrder = 2147483647 
-screenGui.Parent = playerGui -- 直接使用 playerGui，放弃 gethui 以避免坐标错乱
+screenGui.Parent = playerGui -- 直接使用 playerGui，避免 gethui 坐标错乱
 
 -- ========== 主窗口 ==========
 local main = Instance.new("Frame")
@@ -111,23 +111,23 @@ end)
 local titleDivider = Instance.new("Frame")
 titleDivider.Name = "TitleDivider"
 titleDivider.Size = UDim2.new(1, -20, 0, 2)
-titleDivider.Position = UDim2.new(0, 10, 0, 48) -- 顶部栏底部
+titleDivider.Position = UDim2.new(0, 10, 0, 48)
 titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 左侧分割线（直接挂载在 main 下，绝对定位） ==========
+-- ========== 左侧分割线（直接挂载在 main 下） ==========
 local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
-blueLine.Size = UDim2.new(0, 2, 1, -50) -- 高度填满顶部栏下方
-blueLine.Position = UDim2.new(0, 80, 0, 50) -- 位于 80px 处，正好紧贴按钮右侧
+blueLine.Size = UDim2.new(0, 2, 1, -50)
+blueLine.Position = UDim2.new(0, 80, 0, 50)
 blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = main
 
--- ========== 左侧功能按钮（直接挂载在 main 下，绝对定位，绝不可能跑出窗口） ==========
+-- ========== 左侧功能按钮（绝对定位） ==========
 
--- ESP 按钮（Y=50，紧贴最上方分割线下方）
+-- ESP 按钮（Y=50）
 local espButton = Instance.new("TextButton")
 espButton.Name = "ESPButton"
 espButton.Text = "ESP"
@@ -137,14 +137,14 @@ espButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 espButton.BorderSizePixel = 0
 espButton.Size = UDim2.new(0, 80, 0, 36)
-espButton.Position = UDim2.new(0, 0, 0, 50) -- X=0，Y=50（相切）
+espButton.Position = UDim2.new(0, 0, 0, 50)
 espButton.Parent = main
 
 local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
--- 视觉按钮（Y=96，间隔 10px）
+-- 视觉按钮（Y=96）
 local visionButton = Instance.new("TextButton")
 visionButton.Name = "VisionButton"
 visionButton.Text = "视觉"
@@ -154,14 +154,31 @@ visionButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 visionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 visionButton.BorderSizePixel = 0
 visionButton.Size = UDim2.new(0, 80, 0, 36)
-visionButton.Position = UDim2.new(0, 0, 0, 96) -- X=0，Y=96
+visionButton.Position = UDim2.new(0, 0, 0, 96)
 visionButton.Parent = main
 
 local visionBtnCorner = Instance.new("UICorner")
 visionBtnCorner.CornerRadius = UDim.new(0, 6)
 visionBtnCorner.Parent = visionButton
 
--- Setting 按钮（Y=142，间隔 10px）
+-- 通用按钮（Y=142）
+local generalButton = Instance.new("TextButton")
+generalButton.Name = "GeneralButton"
+generalButton.Text = "通用"
+generalButton.TextSize = 15
+generalButton.Font = Enum.Font.GothamBold
+generalButton.TextColor3 = Color3.fromRGB(200, 200, 210)
+generalButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+generalButton.BorderSizePixel = 0
+generalButton.Size = UDim2.new(0, 80, 0, 36)
+generalButton.Position = UDim2.new(0, 0, 0, 142)
+generalButton.Parent = main
+
+local generalBtnCorner = Instance.new("UICorner")
+generalBtnCorner.CornerRadius = UDim.new(0, 6)
+generalBtnCorner.Parent = generalButton
+
+-- Setting 按钮（Y=188）
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -171,18 +188,18 @@ settingButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 settingButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 settingButton.BorderSizePixel = 0
 settingButton.Size = UDim2.new(0, 80, 0, 36)
-settingButton.Position = UDim2.new(0, 0, 0, 142) -- X=0，Y=142
+settingButton.Position = UDim2.new(0, 0, 0, 188)
 settingButton.Parent = main
 
 local settingBtnCorner = Instance.new("UICorner")
 settingBtnCorner.CornerRadius = UDim.new(0, 6)
 settingBtnCorner.Parent = settingButton
 
--- ========== 右侧内容区域（避让按钮） ==========
+-- ========== 右侧内容区域 ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
-content.Position = UDim2.new(0, 100, 0, 110) -- 按钮宽 80，所以内容从 100 开始
+content.Position = UDim2.new(0, 100, 0, 110)
 content.Size = UDim2.new(1, -110, 1, -120)
 content.Parent = main
 
@@ -289,12 +306,44 @@ local visionLayout = Instance.new("UIListLayout")
 visionLayout.Padding = UDim.new(0, 12)
 visionLayout.Parent = visionList
 
+-- ========== 通用页面（新增） ==========
+local generalPage = Instance.new("Frame")
+generalPage.Name = "GeneralPage"
+generalPage.BackgroundTransparency = 1
+generalPage.Size = UDim2.new(1, 0, 1, 0)
+generalPage.Visible = false
+generalPage.Parent = content
+
+local generalTitle = Instance.new("TextLabel")
+generalTitle.Text = "通用功能"
+generalTitle.BackgroundTransparency = 1
+generalTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+generalTitle.TextSize = 24
+generalTitle.Font = Enum.Font.GothamBold
+generalTitle.TextXAlignment = Enum.TextXAlignment.Left
+generalTitle.TextStrokeTransparency = 0.5
+generalTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+generalTitle.Size = UDim2.new(1, 0, 0, 36)
+generalTitle.Parent = generalPage
+
+local generalList = Instance.new("Frame")
+generalList.BackgroundTransparency = 1
+generalList.Position = UDim2.new(0, 0, 0, 50)
+generalList.Size = UDim2.new(1, 0, 1, -50)
+generalList.Parent = generalPage
+
+local generalLayout = Instance.new("UIListLayout")
+generalLayout.Padding = UDim.new(0, 12)
+generalLayout.Parent = generalList
+
 -- 状态表
 local espState = { Highlight = false, Name = false, Line = false, Interact = false }
 local visualState = { HighlightMode = false, RemoveDarkness = false }
+local generalState = { Fly = false, AntiFling = false }
 
 -- 通用创建开关按钮函数
-local function createToggleButton(parent, text, key, onColor)
+local function createToggleButton(parent, text, key, onColor, customState)
+    local stateTable = customState or espState
     local btn = Instance.new("TextButton")
     btn.Name = key .. "Toggle"
     btn.Text = text .. "：关"
@@ -311,29 +360,23 @@ local function createToggleButton(parent, text, key, onColor)
     corner.Parent = btn
 
     btn.MouseButton1Click:Connect(function()
-        if key == "HighlightMode" or key == "RemoveDarkness" then
-            visualState[key] = not visualState[key]
-            if visualState[key] then
-                btn.Text = text .. "：开"
-                btn.BackgroundColor3 = onColor or Color3.fromRGB(0, 120, 255)
-            else
-                btn.Text = text .. "：关"
-                btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-            end
-            if updateVisuals then updateVisuals() end
+        stateTable[key] = not stateTable[key]
+        if stateTable[key] then
+            btn.Text = text .. "：开"
+            btn.BackgroundColor3 = onColor or Color3.fromRGB(0, 120, 255)
         else
-            espState[key] = not espState[key]
-            if espState[key] then
-                btn.Text = text .. "：开"
-                btn.BackgroundColor3 = onColor or Color3.fromRGB(0, 120, 255)
-            else
-                btn.Text = text .. "：关"
-                btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-            end
+            btn.Text = text .. "：关"
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
         end
+        
+        -- 针对通用功能，触发具体的逻辑更新
+        if key == "Fly" and updateFly then updateFly() end
+        if key == "AntiFling" and updateAntiFling then updateAntiFling() end
+        if (key == "HighlightMode" or key == "RemoveDarkness") and updateVisuals then updateVisuals() end
     end)
 end
 
+-- 创建玩家 ESP 按钮
 createToggleButton(espList, "高亮显示玩家", "Highlight", Color3.fromRGB(0, 120, 255))
 createToggleButton(espList, "显示玩家用户名", "Name", Color3.fromRGB(0, 120, 255))
 createToggleButton(espList, "显示距离射线", "Line", Color3.fromRGB(0, 120, 255))
@@ -342,6 +385,213 @@ createToggleButton(interactList, "高亮可交互目标", "Interact", Color3.fro
 -- 视觉页面按钮
 createToggleButton(visionList, "开启高亮模式", "HighlightMode", Color3.fromRGB(255, 180, 0))
 createToggleButton(visionList, "删除地图黑暗效果", "RemoveDarkness", Color3.fromRGB(255, 100, 100))
+
+-- ========== 通用功能逻辑构建 ==========
+-- 1. 修改行走速度与跳跃高度（输入框形式）
+local function createSpeedInput(parent, labelText, defaultValue, callback)
+    local container = Instance.new("Frame")
+    container.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+    container.BorderSizePixel = 0
+    container.Size = UDim2.new(0, 320, 0, 50)
+    container.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = container
+
+    local label = Instance.new("TextLabel")
+    label.Text = labelText
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 16
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Size = UDim2.new(0.5, 0, 1, 0)
+    label.Position = UDim2.new(0, 15, 0, 0)
+    label.Parent = container
+
+    local box = Instance.new("TextBox")
+    box.Text = tostring(defaultValue)
+    box.Font = Enum.Font.GothamBold
+    box.TextSize = 16
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    box.BorderSizePixel = 0
+    box.Size = UDim2.new(0, 80, 0, 34)
+    box.Position = UDim2.new(1, -95, 0.5, -17)
+    box.Parent = container
+
+    local boxCorner = Instance.new("UICorner")
+    boxCorner.CornerRadius = UDim.new(0, 6)
+    boxCorner.Parent = box
+
+    box.FocusLost:Connect(function()
+        local num = tonumber(box.Text)
+        if num then
+            callback(num)
+        else
+            box.Text = tostring(defaultValue)
+        end
+    end)
+end
+
+createSpeedInput(generalList, "行走速度", 16, function(val)
+    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = val
+    end
+end)
+
+createSpeedInput(generalList, "跳跃高度", 50, function(val)
+    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        player.Character.Humanoid.UseJumpPower = true
+        player.Character.Humanoid.JumpPower = val
+    end
+end)
+
+-- 2. 飞行、甩飞、防甩飞按钮
+local flyBtn = Instance.new("TextButton")
+flyBtn.Name = "FlyToggle"
+flyBtn.Text = "飞行：关"
+flyBtn.TextSize = 16
+flyBtn.Font = Enum.Font.GothamBold
+flyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+flyBtn.BorderSizePixel = 0
+flyBtn.Size = UDim2.new(0, 200, 0, 38)
+flyBtn.Parent = generalList
+
+local flyCorner = Instance.new("UICorner")
+flyCorner.CornerRadius = UDim.new(0, 6)
+flyCorner.Parent = flyBtn
+
+flyBtn.MouseButton1Click:Connect(function()
+    generalState.Fly = not generalState.Fly
+    if generalState.Fly then
+        flyBtn.Text = "飞行：开"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    else
+        flyBtn.Text = "飞行：关"
+        flyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    end
+    if updateFly then updateFly() end
+end)
+
+local flingBtn = Instance.new("TextButton")
+flingBtn.Name = "FlingButton"
+flingBtn.Text = "执行甩飞"
+flingBtn.TextSize = 16
+flingBtn.Font = Enum.Font.GothamBold
+flingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+flingBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+flingBtn.BorderSizePixel = 0
+flingBtn.Size = UDim2.new(0, 200, 0, 38)
+flingBtn.Parent = generalList
+
+local flingCorner = Instance.new("UICorner")
+flingCorner.CornerRadius = UDim.new(0, 6)
+flingCorner.Parent = flingBtn
+
+flingBtn.MouseButton1Click:Connect(function()
+    -- 简单的本地甩飞逻辑，尝试让周围玩家转起来
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = p.Character.HumanoidRootPart
+            pcall(function()
+                local bv = Instance.new("BodyAngularVelocity")
+                bv.AngularVelocity = Vector3.new(0, 99999, 0)
+                bv.MaxTorque = Vector3.new(99999, 99999, 99999)
+                bv.Parent = hrp
+                task.delay(0.5, function() bv:Destroy() end)
+            end)
+        end
+    end
+end)
+
+createToggleButton(generalList, "防甩飞", "AntiFling", Color3.fromRGB(255, 150, 0), generalState)
+
+-- ========== 核心通用逻辑实现 ==========
+-- 飞行逻辑
+local flyBodyVelocity = nil
+local flyBodyGyro = nil
+local flyConnection = nil
+
+updateFly = function()
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+
+    if generalState.Fly then
+        if not flyBodyVelocity then
+            flyBodyVelocity = Instance.new("BodyVelocity")
+            flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            flyBodyVelocity.Parent = hrp
+
+            flyBodyGyro = Instance.new("BodyGyro")
+            flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+            flyBodyGyro.P = 1000
+            flyBodyGyro.Parent = hrp
+        end
+
+        if flyConnection then flyConnection:Disconnect() end
+        flyConnection = RunService.RenderStepped:Connect(function()
+            if not generalState.Fly or not char.Parent then
+                return
+            end
+            local camera = workspace.CurrentCamera
+            local moveDirection = Vector3.new(0, 0, 0)
+
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0, 1, 0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection -= Vector3.new(0, 1, 0) end
+
+            if moveDirection.Magnitude > 0 then
+                flyBodyVelocity.Velocity = moveDirection.Unit * 60
+            else
+                flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            end
+            flyBodyGyro.CFrame = camera.CFrame
+        end)
+    else
+        if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
+        if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+        if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    end
+end
+
+-- 角色重生时重新应用飞行
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    if generalState.Fly then updateFly() end
+end)
+
+-- 防甩飞逻辑
+local antiFlingConnection = nil
+
+updateAntiFling = function()
+    if generalState.AntiFling then
+        if antiFlingConnection then antiFlingConnection:Disconnect() end
+        antiFlingConnection = RunService.Heartbeat:Connect(function()
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                -- 如果角速度异常，重置
+                if hrp.AssemblyAngularVelocity.Magnitude > 100 then
+                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                end
+                -- 如果速度异常，重置
+                if hrp.AssemblyLinearVelocity.Magnitude > 500 then
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                end
+            end
+        end)
+    else
+        if antiFlingConnection then antiFlingConnection:Disconnect() antiFlingConnection = nil end
+    end
+end
 
 -- ========== 视觉核心逻辑 ==========
 local highlightEffect = nil
@@ -485,7 +735,7 @@ keyBox.FocusLost:Connect(function()
     end
 end)
 
--- ========== 屏幕上方居中悬浮窗（缩小状态） ==========
+-- ========== 屏幕上方居中悬浮窗 ==========
 local minimizedUi = Instance.new("Frame")
 minimizedUi.Name = "MinimizedUI"
 minimizedUi.AnchorPoint = Vector2.new(0.5, 0)
@@ -549,31 +799,21 @@ local function highlightButton(btn)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 end
 
+local allButtons = {espButton, visionButton, generalButton, settingButton}
+local allPages = {espPage, visionPage, generalPage, settingPage}
+
 local function switchPage(pageToShow, btnToHighlight)
-    defaultPage.Visible = false
-    espPage.Visible = false
-    settingPage.Visible = false
-    visionPage.Visible = false
+    for _, p in ipairs(allPages) do p.Visible = false end
+    for _, b in ipairs(allButtons) do resetButton(b) end
     
     pageToShow.Visible = true
-    
     highlightButton(btnToHighlight)
-    if btnToHighlight ~= espButton then resetButton(espButton) end
-    if btnToHighlight ~= settingButton then resetButton(settingButton) end
-    if btnToHighlight ~= visionButton then resetButton(visionButton) end
 end
 
-espButton.MouseButton1Click:Connect(function()
-    switchPage(espPage, espButton)
-end)
-
-visionButton.MouseButton1Click:Connect(function()
-    switchPage(visionPage, visionButton)
-end)
-
-settingButton.MouseButton1Click:Connect(function()
-    switchPage(settingPage, settingButton)
-end)
+espButton.MouseButton1Click:Connect(function() switchPage(espPage, espButton) end)
+visionButton.MouseButton1Click:Connect(function() switchPage(visionPage, visionButton) end)
+generalButton.MouseButton1Click:Connect(function() switchPage(generalPage, generalButton) end)
+settingButton.MouseButton1Click:Connect(function() switchPage(settingPage, settingButton) end)
 
 -- ========== 核心玩家 ESP 逻辑 ==========
 local espCache = {}
@@ -855,4 +1095,4 @@ task.delay(5, function()
     notification:Destroy()
 end)
 
-print("✅ UI 已成功加载最新版本，设备类型：" .. deviceText)
+print("✅ UI 已成功加载通用版，设备类型：" .. deviceText)
