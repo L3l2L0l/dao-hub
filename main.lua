@@ -1,4 +1,4 @@
--- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP 和 Setting 面板（带 UI 大小滑动条）
+-- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP 和 Setting 面板（支持快捷键隐藏/显示）
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中
 
 local Players = game:GetService("Players")
@@ -27,6 +27,9 @@ elseif isMobile then
 else
     deviceText = UserInputService.TouchEnabled and "触摸设备" or "键盘设备"
 end
+
+-- ========== 快捷键状态 ==========
+local currentToggleKey = Enum.KeyCode.G -- 默认 G 键
 
 -- ========== 创建 ScreenGui ==========
 local screenGui = Instance.new("ScreenGui")
@@ -283,142 +286,114 @@ local settingLayout = Instance.new("UIListLayout")
 settingLayout.Padding = UDim.new(0, 15)
 settingLayout.Parent = settingList
 
--- ========== 在设置页面中添加：调节 UI 大小的滑动条 ==========
-local sliderContainer = Instance.new("Frame")
-sliderContainer.Name = "UISizeSliderContainer"
-sliderContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
-sliderContainer.BorderSizePixel = 0
-sliderContainer.Size = UDim2.new(0, 320, 0, 70)
-sliderContainer.Parent = settingList
+-- ========== 在设置页面中添加：快捷键设置 ==========
+local keyContainer = Instance.new("Frame")
+keyContainer.Name = "KeybindContainer"
+keyContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+keyContainer.BorderSizePixel = 0
+keyContainer.Size = UDim2.new(0, 320, 0, 60)
+keyContainer.Parent = settingList
 
-local sliderContainerCorner = Instance.new("UICorner")
-sliderContainerCorner.CornerRadius = UDim.new(0, 8)
-sliderContainerCorner.Parent = sliderContainer
+local keyContainerCorner = Instance.new("UICorner")
+keyContainerCorner.CornerRadius = UDim.new(0, 8)
+keyContainerCorner.Parent = keyContainer
 
-local sliderLabel = Instance.new("TextLabel")
-sliderLabel.Name = "SliderLabel"
-sliderLabel.Text = "调节UI"
-sliderLabel.Font = Enum.Font.GothamBold
-sliderLabel.TextSize = 16
-sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-sliderLabel.BackgroundTransparency = 1
-sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
-sliderLabel.Size = UDim2.new(1, -20, 0, 24)
-sliderLabel.Position = UDim2.new(0, 10, 0, 8)
-sliderLabel.Parent = sliderContainer
+local keyLabel = Instance.new("TextLabel")
+keyLabel.Text = "开关快捷键"
+keyLabel.Font = Enum.Font.GothamBold
+keyLabel.TextSize = 16
+keyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyLabel.BackgroundTransparency = 1
+keyLabel.TextXAlignment = Enum.TextXAlignment.Left
+keyLabel.Size = UDim2.new(0.5, 0, 1, 0)
+keyLabel.Position = UDim2.new(0, 15, 0, 0)
+keyLabel.Parent = keyContainer
 
--- 滑动条背景轨道
-local track = Instance.new("Frame")
-track.Name = "Track"
-track.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-track.BorderSizePixel = 0
-track.Size = UDim2.new(1, -40, 0, 8)
-track.Position = UDim2.new(0, 20, 0, 38)
-track.Parent = sliderContainer
+local keyBox = Instance.new("TextBox")
+keyBox.Name = "KeyInput"
+keyBox.Text = "G"
+keyBox.Font = Enum.Font.GothamBold
+keyBox.TextSize = 16
+keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+keyBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+keyBox.BorderSizePixel = 0
+keyBox.Size = UDim2.new(0, 80, 0, 34)
+keyBox.Position = UDim2.new(1, -95, 0.5, -17)
+keyBox.Parent = keyContainer
 
-local trackCorner = Instance.new("UICorner")
-trackCorner.CornerRadius = UDim.new(1, 0)
-trackCorner.Parent = track
+local keyBoxCorner = Instance.new("UICorner")
+keyBoxCorner.CornerRadius = UDim.new(0, 6)
+keyBoxCorner.Parent = keyBox
 
--- 滑动条填充部分
-local fill = Instance.new("Frame")
-fill.Name = "Fill"
-fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
-fill.BorderSizePixel = 0
-fill.Size = UDim2.new(0.5, 0, 1, 0) -- 初始 50% 对应 0.3~0.9 的中间值
-fill.Parent = track
-
-local fillCorner = Instance.new("UICorner")
-fillCorner.CornerRadius = UDim.new(1, 0)
-fillCorner.Parent = fill
-
--- 滑动条旋钮
-local knob = Instance.new("TextButton")
-knob.Name = "Knob"
-knob.Text = ""
-knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-knob.BorderSizePixel = 0
-knob.Size = UDim2.new(0, 20, 0, 20)
-knob.AnchorPoint = Vector2.new(0.5, 0.5)
-knob.Position = UDim2.new(0.5, 0, 0.5, 0)
-knob.Parent = track
-
-local knobCorner = Instance.new("UICorner")
-knobCorner.CornerRadius = UDim.new(1, 0)
-knobCorner.Parent = knob
-
--- 30% 和 90% 的标注
-local minLabel = Instance.new("TextLabel")
-minLabel.Text = "30%"
-minLabel.Font = Enum.Font.Gotham
-minLabel.TextSize = 12
-minLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
-minLabel.BackgroundTransparency = 1
-minLabel.Size = UDim2.new(0, 40, 0, 16)
-minLabel.Position = UDim2.new(0, 0, 0, 54)
-minLabel.TextXAlignment = Enum.TextXAlignment.Left
-minLabel.Parent = sliderContainer
-
-local maxLabel = Instance.new("TextLabel")
-maxLabel.Text = "90%"
-maxLabel.Font = Enum.Font.Gotham
-maxLabel.TextSize = 12
-maxLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
-maxLabel.BackgroundTransparency = 1
-maxLabel.Size = UDim2.new(0, 40, 0, 16)
-maxLabel.Position = UDim2.new(1, -40, 0, 54)
-maxLabel.TextXAlignment = Enum.TextXAlignment.Right
-maxLabel.Parent = sliderContainer
-
--- 滑动条逻辑
-local dragging = false
-
-local function updateSlider(input)
-    if not dragging then return end
+keyBox.FocusLost:Connect(function()
+    local inputText = string.upper(keyBox.Text)
+    if inputText == "" then
+        keyBox.Text = string.upper(currentToggleKey.Name)
+        return
+    end
     
-    local mouseX = input.Position.X
-    local trackAbsPos = track.AbsolutePosition.X
-    local trackAbsSize = track.AbsoluteSize.X
+    local success, keyCode = pcall(function()
+        return Enum.KeyCode[inputText]
+    end)
     
-    -- 计算相对位置并限制在 0 到 1 之间
-    local relativeX = math.clamp((mouseX - trackAbsPos) / trackAbsSize, 0, 1)
-    
-    -- 映射到 0.3 到 0.9 的缩放比例
-    local scale = 0.3 + relativeX * (0.9 - 0.3)
-    
-    -- 更新滑动条视觉
-    fill.Size = UDim2.new(relativeX, 0, 1, 0)
-    knob.Position = UDim2.new(relativeX, 0, 0.5, 0)
-    
-    -- 更新主窗口大小（因为锚点在中心，所以会自动居中缩放）
-    main.Size = UDim2.fromScale(scale, scale)
-end
-
-knob.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
+    if success and keyCode then
+        currentToggleKey = keyCode
+        keyBox.Text = inputText
+    else
+        keyBox.Text = string.upper(currentToggleKey.Name)
     end
 end)
 
--- 点击轨道也能直接跳转
-track.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        updateSlider(input)
+-- ========== 屏幕上方居中悬浮窗（缩小状态） ==========
+local minimizedUi = Instance.new("Frame")
+minimizedUi.Name = "MinimizedUI"
+minimizedUi.AnchorPoint = Vector2.new(0.5, 0)
+minimizedUi.Position = UDim2.new(0.5, 0, 0, 20) -- 屏幕上方居中
+minimizedUi.Size = UDim2.new(0, 120, 0, 40)
+minimizedUi.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+minimizedUi.BorderSizePixel = 0
+minimizedUi.Visible = false -- 默认隐藏
+minimizedUi.Parent = screenGui
+
+local minimizedCorner = Instance.new("UICorner")
+minimizedCorner.CornerRadius = UDim.new(0, 10)
+minimizedCorner.Parent = minimizedUi
+
+local minimizedStroke = Instance.new("UIStroke")
+minimizedStroke.Color = Color3.fromRGB(100, 100, 120)
+minimizedStroke.Thickness = 1.5
+minimizedStroke.Parent = minimizedUi
+
+local minimizedTitle = Instance.new("TextLabel")
+minimizedTitle.Text = "dao hub"
+minimizedTitle.Font = Enum.Font.GothamBlack
+minimizedTitle.TextSize = 18
+minimizedTitle.BackgroundTransparency = 1
+minimizedTitle.Size = UDim2.new(1, 0, 1, 0)
+minimizedTitle.TextStrokeTransparency = 0.5
+minimizedTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+minimizedTitle.Parent = minimizedUi
+
+local minimizedGradient = Instance.new("UIGradient")
+minimizedGradient.Color = gradient.Color -- 复用彩虹渐变色
+minimizedGradient.Parent = minimizedTitle
+
+task.spawn(function()
+    while minimizedTitle.Parent do
+        task.wait(0.05)
+        minimizedGradient.Rotation = (minimizedGradient.Rotation + 2) % 360
     end
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if dragging then
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            updateSlider(input)
-        end
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
+-- ========== 快捷键逻辑 ==========
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- gameProcessed 为 true 时表示玩家正在聊天框或输入框中打字，不触发切换
+    if gameProcessed then return end
+    
+    if input.KeyCode == currentToggleKey then
+        local isMainVisible = main.Visible
+        main.Visible = not isMainVisible
+        minimizedUi.Visible = isMainVisible -- 主界面隐藏时，显示悬浮窗，反之亦然
     end
 end)
 
