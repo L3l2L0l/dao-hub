@@ -42,14 +42,14 @@ screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.DisplayOrder = 2147483647 
-screenGui.Parent = playerGui -- 直接使用 playerGui，避免 gethui 坐标错乱
+screenGui.Parent = playerGui
 
 -- ========== 主窗口 ==========
 local main = Instance.new("Frame")
 main.Name = "MainWindow"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
-main.Position = UDim2.new(0.5, 0, 0.5, 0) -- 严格居中
-main.Size = UDim2.fromScale(0.5, 0.5) -- 占屏幕 50%
+main.Position = UDim2.new(0.5, 0, 0.5, 0)
+main.Size = UDim2.fromScale(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 main.BorderSizePixel = 0
 main.Active = true
@@ -125,7 +125,7 @@ blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = main
 
--- ========== 左侧功能按钮（严格按照 上一个Y + 46 递增） ==========
+-- ========== 左侧功能按钮（严格 Y + 46 递增） ==========
 
 -- ESP 按钮（Y=50）
 local espButton = Instance.new("TextButton")
@@ -161,7 +161,7 @@ local visionBtnCorner = Instance.new("UICorner")
 visionBtnCorner.CornerRadius = UDim.new(0, 6)
 visionBtnCorner.Parent = visionButton
 
--- 通用按钮（Y=142，注意这里是视觉下面 10px）
+-- 通用按钮（Y=142）
 local generalButton = Instance.new("TextButton")
 generalButton.Name = "GeneralButton"
 generalButton.Text = "通用"
@@ -202,26 +202,6 @@ content.BackgroundTransparency = 1
 content.Position = UDim2.new(0, 100, 0, 110)
 content.Size = UDim2.new(1, -110, 1, -120)
 content.Parent = main
-
--- 默认页面
-local defaultPage = Instance.new("Frame")
-defaultPage.Name = "DefaultPage"
-defaultPage.BackgroundTransparency = 1
-defaultPage.Size = UDim2.new(1, 0, 1, 0)
-defaultPage.Parent = content
-
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.BackgroundTransparency = 1
-title.Text = "窗口内容"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 28
-title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.TextStrokeTransparency = 0.5
-title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Parent = defaultPage
 
 -- ========== ESP 页面 ==========
 local espPage = Instance.new("Frame")
@@ -802,6 +782,9 @@ visionButton.MouseButton1Click:Connect(function() switchPage(visionPage, visionB
 generalButton.MouseButton1Click:Connect(function() switchPage(generalPage, generalButton) end)
 settingButton.MouseButton1Click:Connect(function() switchPage(settingPage, settingButton) end)
 
+-- 核心修复：UI 初始化完成后，立即显示 ESP 页面，不再留下空白和残留文字
+switchPage(espPage, espButton)
+
 -- ========== 核心玩家 ESP 逻辑 ==========
 local espCache = {}
 
@@ -1082,4 +1065,4 @@ task.delay(5, function()
     notification:Destroy()
 end)
 
-print("✅ UI 已加载，设备类型：" .. deviceText)
+print("✅ UI 已加载并初始化显示 ESP 页面，设备类型：" .. deviceText)
