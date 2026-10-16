@@ -123,21 +123,20 @@ titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 左侧功能区（调整布局） ==========
+-- ========== 左侧功能区（严格按照主窗口内部定位） ==========
 local leftPanel = Instance.new("Frame")
 leftPanel.Name = "LeftPanel"
 leftPanel.BackgroundTransparency = 1
--- 宽度加宽到 130，因为按钮从 50 开始，宽度 80，需要容纳到 130 的宽度
+-- 面板宽度 130，高度从顶部栏下方一直延伸到底部
 leftPanel.Size = UDim2.new(0, 130, 1, -50) 
 leftPanel.Position = UDim2.new(0, 0, 0, 50) 
-leftPanel.Parent = main
+leftPanel.Parent = main -- 关键：确保它是主窗口的子元素，不会再跑到外面
 
--- 左侧分割线（位于距离主窗口左侧 80px 处）
+-- 左侧分割线（按你要求：距离主窗口左侧 80px）
 local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
 blueLine.Size = UDim2.new(0, 2, 1, 0)
--- 关键修改：改为距离主窗口左侧 80px
-blueLine.Position = UDim2.new(0, 80, 0, 0) 
+blueLine.Position = UDim2.new(0, 80, 0, 0) -- 80px 处
 blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = leftPanel
@@ -153,7 +152,7 @@ listLayout.Parent = leftPanel
 -- 边距设置：顶部 0，左侧 50（让按钮起始于距离主窗口 50px 处）
 local listPadding = Instance.new("UIPadding")
 listPadding.PaddingTop = UDim.new(0, 0)
-listPadding.PaddingLeft = UDim.new(0, 50) -- 关键修改：移动到距离左侧 50px
+listPadding.PaddingLeft = UDim.new(0, 50) -- 50px 处
 listPadding.Parent = leftPanel
 
 -- ESP 按钮
@@ -165,7 +164,7 @@ espButton.Font = Enum.Font.GothamBold
 espButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 espButton.BorderSizePixel = 0
-espButton.Size = UDim2.new(0, 80, 0, 36)
+espButton.Size = UDim2.new(0, 80, 0, 36) -- 宽 80，高 36
 espButton.LayoutOrder = 1
 espButton.Parent = leftPanel
 
@@ -207,11 +206,11 @@ local settingBtnCorner = Instance.new("UICorner")
 settingBtnCorner.CornerRadius = UDim.new(0, 6)
 settingBtnCorner.Parent = settingButton
 
--- ========== 右侧内容区域（避让加宽的左侧按钮） ==========
+-- ========== 右侧内容区域（避让左侧按钮，防止重叠） ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
--- 关键修改：因为按钮延伸到了 130px，所以内容区右移到 140px 开始
+-- 按钮延伸到了 130px，所以内容区右移到 140px 开始
 content.Position = UDim2.new(0, 140, 0, 110) 
 content.Size = UDim2.new(1, -150, 1, -120)
 content.Parent = main
