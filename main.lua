@@ -1,4 +1,4 @@
--- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + 右侧 ESP 功能面板（高亮度对比版）
+-- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP 和 Setting 面板（高亮度对比版，无调节大小功能）
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中
 
 local Players = game:GetService("Players")
@@ -41,7 +41,7 @@ local main = Instance.new("Frame")
 main.Name = "MainWindow"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
-main.Size = UDim2.fromScale(0.5, 0.5)
+main.Size = UDim2.fromScale(0.5, 0.5) -- 固定屏幕 50% 大小
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 main.BorderSizePixel = 0
 main.Parent = screenGui
@@ -103,24 +103,6 @@ titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
--- ========== 右上角“调节UI”按钮 ==========
-local resizeButton = Instance.new("TextButton")
-resizeButton.Name = "ResizeUI"
-resizeButton.Text = "调节UI"
-resizeButton.TextSize = 14
-resizeButton.Font = Enum.Font.GothamBold
-resizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-resizeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-resizeButton.BorderSizePixel = 0
-resizeButton.AutoButtonColor = false
-resizeButton.Size = UDim2.new(0, 70, 0, 32)
-resizeButton.Position = UDim2.new(1, -80, 0, 9)
-resizeButton.Parent = topBar
-
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 6)
-buttonCorner.Parent = resizeButton
-
 -- ========== 左侧新功能区 ==========
 local leftPanel = Instance.new("Frame")
 leftPanel.Name = "LeftPanel"
@@ -138,15 +120,15 @@ blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = leftPanel
 
--- 左侧列表布局（改为顶部对齐 + 顶部边距）
+-- 左侧列表布局（顶部对齐，保持间距）
 local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 10)
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-listLayout.VerticalAlignment = Enum.VerticalAlignment.Top -- 关键修改：改为顶部对齐
+listLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 listLayout.Parent = leftPanel
 
 local listPadding = Instance.new("UIPadding")
-listPadding.PaddingTop = UDim.new(0, 15) -- 距离顶部分割线保留 15 像素间距
+listPadding.PaddingTop = UDim.new(0, 15)
 listPadding.Parent = leftPanel
 
 -- ========== 左侧功能按钮：ESP ==========
@@ -164,6 +146,26 @@ espButton.Parent = leftPanel
 local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
+
+-- ========== 左下角功能按钮：Setting ==========
+local settingButton = Instance.new("TextButton")
+settingButton.Name = "SettingButton"
+settingButton.Text = "Setting"
+settingButton.TextSize = 15
+settingButton.Font = Enum.Font.GothamBold
+settingButton.TextColor3 = Color3.fromRGB(200, 200, 210)
+settingButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+settingButton.BorderSizePixel = 0
+-- 使用 AnchorPoint 使其固定在左下角（左侧面板宽度为100，所以 x=50 是正中心）
+settingButton.AnchorPoint = Vector2.new(0.5, 1)
+settingButton.Position = UDim2.new(0, 50, 1, -15)
+settingButton.Size = UDim2.new(0, 80, 0, 36)
+-- 注意：为了防止 UIListLayout 干扰，将其父级设为 main，通过绝对定位固定在左下角
+settingButton.Parent = main
+
+local settingBtnCorner = Instance.new("UICorner")
+settingBtnCorner.CornerRadius = UDim.new(0, 6)
+settingBtnCorner.Parent = settingButton
 
 -- ========== 右侧内容区域 ==========
 local content = Instance.new("Frame")
@@ -261,17 +263,76 @@ createToggleButton(espList, "高亮显示玩家", "Highlight")
 createToggleButton(espList, "显示玩家用户名", "Name")
 createToggleButton(espList, "显示距离射线", "Line")
 
+-- ========== 设置页面 ==========
+local settingPage = Instance.new("Frame")
+settingPage.Name = "SettingPage"
+settingPage.BackgroundTransparency = 1
+settingPage.Size = UDim2.new(1, 0, 1, 0)
+settingPage.Visible = false
+settingPage.Parent = content
+
+local settingTitle = Instance.new("TextLabel")
+settingTitle.Text = "设置"
+settingTitle.BackgroundTransparency = 1
+settingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+settingTitle.TextSize = 24
+settingTitle.Font = Enum.Font.GothamBold
+settingTitle.TextXAlignment = Enum.TextXAlignment.Left
+settingTitle.TextStrokeTransparency = 0.5
+settingTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+settingTitle.Size = UDim2.new(1, 0, 0, 36)
+settingTitle.Parent = settingPage
+
+local settingList = Instance.new("Frame")
+settingList.BackgroundTransparency = 1
+settingList.Position = UDim2.new(0, 0, 0, 50)
+settingList.Size = UDim2.new(1, 0, 1, -50)
+settingList.Parent = settingPage
+
+local settingLayout = Instance.new("UIListLayout")
+settingLayout.Padding = UDim.new(0, 12)
+settingLayout.Parent = settingList
+
+-- 此处为设置页面的占位符，后续可以在这里添加功能
+local settingPlaceholder = Instance.new("TextLabel")
+settingPlaceholder.Text = "这里将在后续添加设置功能..."
+settingPlaceholder.BackgroundTransparency = 1
+settingPlaceholder.TextColor3 = Color3.fromRGB(180, 180, 190)
+settingPlaceholder.TextSize = 16
+settingPlaceholder.Font = Enum.Font.Gotham
+settingPlaceholder.TextXAlignment = Enum.TextXAlignment.Left
+settingPlaceholder.Size = UDim2.new(1, 0, 0, 30)
+settingPlaceholder.Parent = settingList
+
+-- ========== 按钮切换逻辑 ==========
+local function resetButton(btn)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    btn.TextColor3 = Color3.fromRGB(200, 200, 210)
+end
+
+local function highlightButton(btn)
+    btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+end
+
+-- 点击 ESP 按钮
 espButton.MouseButton1Click:Connect(function()
-    defaultPage.Visible = not defaultPage.Visible
-    espPage.Visible = not espPage.Visible
+    defaultPage.Visible = false
+    espPage.Visible = true
+    settingPage.Visible = false
     
-    if espPage.Visible then
-        espButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-        espButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    else
-        espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-        espButton.TextColor3 = Color3.fromRGB(200, 200, 210)
-    end
+    highlightButton(espButton)
+    resetButton(settingButton)
+end)
+
+-- 点击 Setting 按钮
+settingButton.MouseButton1Click:Connect(function()
+    defaultPage.Visible = false
+    espPage.Visible = false
+    settingPage.Visible = true
+    
+    highlightButton(settingButton)
+    resetButton(espButton)
 end)
 
 -- ========== 核心 ESP 逻辑 ==========
@@ -426,68 +487,6 @@ RunService.RenderStepped:Connect(function()
             if data.DistanceGui then data.DistanceGui:Destroy() end
             espCache[p] = nil
         end
-    end
-end)
-
--- ========== 调整大小逻辑 ==========
-local resizing = false
-local startMouse = Vector2.new()
-local startWidth = 0
-local startHeight = 0
-
-local MIN_WIDTH = 300
-local MIN_HEIGHT = 200
-local MAX_WIDTH_RATIO = 0.95
-local MAX_HEIGHT_RATIO = 0.95
-
-local function startResize(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-        
-        resizing = true
-        startMouse = Vector2.new(input.Position.X, input.Position.Y)
-        startWidth = main.AbsoluteSize.X
-        startHeight = main.AbsoluteSize.Y
-        
-        resizeButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    end
-end
-
-local function stopResize()
-    if resizing then
-        resizing = false
-        resizeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-    end
-end
-
-resizeButton.InputBegan:Connect(startResize)
-resizeButton.InputEnded:Connect(stopResize)
-
-UserInputService.InputChanged:Connect(function(input)
-    if not resizing then return end
-    
-    if input.UserInputType ~= Enum.UserInputType.MouseMovement
-        and input.UserInputType ~= Enum.UserInputType.Touch then
-        return
-    end
-    
-    local currentMouse = Vector2.new(input.Position.X, input.Position.Y)
-    local delta = currentMouse - startMouse
-    
-    local screenSize = screenGui.AbsoluteSize
-    local maxWidth = screenSize.X * MAX_WIDTH_RATIO
-    local maxHeight = screenSize.Y * MAX_HEIGHT_RATIO
-    
-    local newWidth = math.clamp(startWidth + delta.X, MIN_WIDTH, maxWidth)
-    local newHeight = math.clamp(startHeight + delta.Y, MIN_HEIGHT, maxHeight)
-    
-    main.Size = UDim2.fromOffset(newWidth, newHeight)
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-        stopResize()
     end
 end)
 
