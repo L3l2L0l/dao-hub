@@ -6,7 +6,12 @@ if game:GetService("RunService"):IsServer() then
 end
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
+
 local localPlayer = Players.LocalPlayer
 local playerGui = localPlayer:WaitForChild("PlayerGui")
 
@@ -70,11 +75,6 @@ if isAlreadyRunning() then
     return 
 end
 -- ========================================================
-
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting")
-local GuiService = game:GetService("GuiService")
 
 local connections = {}
 local function connect(signal, callback)
@@ -158,6 +158,10 @@ local lockStartCFrame = CFrame.new()
 local lockTime = 0                     
 local smoothedLength = nil             
 local viewDirection = Vector3.new(0, 0, -1) 
+
+-- 新增：行走速度相关变量
+local customWalkSpeedEnabled = false
+local customWalkSpeedValue = 16
 
 local pixelHitboxOn = false
 local originalSizes = {}
@@ -443,7 +447,6 @@ connect(localPlayer.Idled, function()
 end)
 
 -- Fullbright
-local Lighting = game:GetService("Lighting")
 local fullbrightWanted = false
 local lightingBackup = nil
 local function restoreLighting()
@@ -571,7 +574,7 @@ end
 end)
 RunService:BindToRenderStep("HeadLockEsp", Enum.RenderPriority.Camera.Value + 2, updateEsp)
 
--- ==================== 交互 ESP (修复版) ====================
+-- ==================== 交互 ESP ====================
 local interactCache = {}
 local function cleanupInteractESP()
     for _, data in pairs(interactCache) do
@@ -600,7 +603,7 @@ task.spawn(function()
                         local highlightTarget = targetPart
                         local targetModel = targetPart:FindFirstAncestorOfClass("Model")
                         
-                        -- 尺寸限制：只有当模型小于 100x100x100 时才高亮整个模型，防止全图高亮
+                        -- 尺寸限制防全图高亮
                         if targetModel then
                             local extents = targetModel:GetExtentsSize()
                             if extents.X < 100 and extents.Y < 100 and extents.Z < 100 then
@@ -630,7 +633,7 @@ task.spawn(function()
                             hl.Adornee = highlightTarget
                             hl.Parent = highlightTarget
                             
-                            -- 悬浮文字精准固定在依附的部件上，保证位置准确
+                            -- 文字精准绑定在目标部件上
                             local bb = Instance.new("BillboardGui")
                             bb.Name = "Interact_Label"
                             bb.Adornee = targetPart 
@@ -665,6 +668,24 @@ task.spawn(function()
         end
     end
 end)
+
+-- ==================== 玩家行走速度锁定循环 ====================
+-- 这个循环会不断检测并覆盖行走速度，防止死亡后重置
+task.spawn(function()
+    while true do
+        task.wait(0.1) -- 降低检测频率，避免不必要的性能消耗
+        if customWalkSpeedEnabled then
+            local char = localPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.WalkSpeed ~= customWalkSpeedValue then
+                    humanoid.WalkSpeed = customWalkSpeedValue
+                end
+            end
+        end
+    end
+end)
+-- ==========================================================
 
 -- ==================== GUI 控制面板 ====================
 local COLOR_BG = Color3.fromRGB(20, 20, 26)
@@ -876,6 +897,32 @@ local row = createRow(page, text)
 local button = newButton(row, buttonText, UDim2.new(1, -164, 0.5, -16), UDim2.fromOffset(152, 32), COLOR_ACCENT, 14)
 button.Activated:Connect(onClick)
 end
+
+-- 新增：输入框行，用于设置行走速度
+local function addInputRow(page, text, getValue, setValue)
+    local row = createRow(page, text)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0, 80, 0, 34)
+    box.Position = UDim2.new(1, -95, 0.5, -17)
+    box.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    box.BorderSizePixel = 0
+    box.Font = Enum.Font.GothamBold
+    box.TextSize = 16
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.Text = tostring(getValue())
+    box.Parent = row
+    addCorner(box, 6)
+    
+    box.FocusLost:Connect(function()
+        local num = tonumber(box.Text)
+        if num and num > 0 then
+            setValue(num)
+        else
+            box.Text = tostring(getValue())
+        end
+    end)
+end
+
 refreshGui = function()
 for _, refresh in ipairs(refreshers) do refresh() end
 circleFrame.Visible = showCircle
@@ -883,7 +930,7 @@ statsLabel.Visible = showStats
 circleFrame.Size = UDim2.fromOffset(CIRCLE_RADIUS * 2, CIRCLE_RADIUS * 2)
 end
 
--- ==================== 飞行系统 (含 Noclip) ====================
+-- ==================== 飞行系统 ====================
 local FLY_SPEED = 60
 local flying = false
 local flyVelocity, flyGyro
@@ -1004,6 +1051,11 @@ end
 addToggleRow(mainPage, "自瞄锁定", function() return isEnabled end, function(value) setEnabled(value) end)
 addToggleRow(mainPage, "飞行系统 (自动穿墙)", function() return flying end, function(value) if value then startFly() else stopFly() end end)
 addStepperRow(mainPage, "飞行速度", function() return tostring(FLY_SPEED) end, function(dir) FLY_SPEED = math.clamp(FLY_SPEED + dir * 10, 10, 300) end)
+
+-- 新增：行走速度锁定和输入框
+addToggleRow(mainPage, "锁定行走速度", function() return customWalkSpeedEnabled end, function(value) customWalkSpeedEnabled = value end)
+addInputRow(mainPage, "设置行走速度", function() return customWalkSpeedValue end, function(value) customWalkSpeedValue = value end)
+
 addCycleRow(mainPage, "相机模式", function() return CAMERA_MODE == "Keep" and "保持" or "背后" end, function() CAMERA_MODE = (CAMERA_MODE == "Behind") and "Keep" or "Behind" end)
 addCycleRow(mainPage, "瞄准部位", function() 
     if AIM_MODE == "Both" then return "混合" 
