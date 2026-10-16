@@ -1,5 +1,6 @@
--- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP 和 Setting 面板（支持快捷键隐藏/显示）
--- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中
+-- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP 和 Setting 面板
+-- 优化：提高 UI 优先级，可覆盖 Esc 菜单，并解决游戏强制锁定鼠标无法点击的问题
+-- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中，或者直接用执行器 loadstring
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -13,6 +14,11 @@ local playerGui = player:WaitForChild("PlayerGui")
 local old = playerGui:FindFirstChild("ResizableUISystem")
 if old then
     old:Destroy()
+end
+-- 如果之前挂载到了 CoreGui，也要清理
+if gethui then
+    local oldHui = gethui():FindFirstChild("ResizableUISystem")
+    if oldHui then oldHui:Destroy() end
 end
 
 -- ========== 自动识别设备 ==========
@@ -31,13 +37,17 @@ end
 -- ========== 快捷键状态 ==========
 local currentToggleKey = Enum.KeyCode.G
 
--- ========== 创建 ScreenGui ==========
+-- ========== 创建 ScreenGui（高优先级，穿透 CoreGui） ==========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ResizableUISystem"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.Parent = playerGui
+screenGui.DisplayOrder = 2147483647 -- 最大优先级，尽量盖过其他 UI
+
+-- 核心：如果有 gethui（执行器专属函数），将其挂载到 CoreGui 层级，这样可以盖过 Esc 菜单
+local parentGui = (gethui and gethui()) or playerGui
+screenGui.Parent = parentGui
 
 -- ========== 主窗口 ==========
 local main = Instance.new("Frame")
@@ -47,6 +57,7 @@ main.Position = UDim2.fromScale(0.5, 0.5)
 main.Size = UDim2.fromScale(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 main.BorderSizePixel = 0
+main.Active = true -- 核心：允许 UI 捕获鼠标输入，解除游戏强制鼠标居中
 main.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
@@ -57,6 +68,13 @@ local mainStroke = Instance.new("UIStroke")
 mainStroke.Color = Color3.fromRGB(100, 100, 120)
 mainStroke.Thickness = 1.5
 mainStroke.Parent = main
+
+-- 当鼠标移入 UI 时，强制解除游戏锁定（应对强制索敌居中）
+main.MouseEnter:Connect(function()
+    if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    end
+end)
 
 -- ========== 顶部标题栏 ==========
 local topBar = Instance.new("Frame")
@@ -389,6 +407,7 @@ minimizedUi.Size = UDim2.new(0, 120, 0, 40)
 minimizedUi.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 minimizedUi.BorderSizePixel = 0
 minimizedUi.Visible = false
+minimizedUi.Active = true -- 同样允许接收点击
 minimizedUi.Parent = screenGui
 
 local minimizedCorner = Instance.new("UICorner")
@@ -472,7 +491,7 @@ local function cleanupESP()
     espCache = {}
 end
 
--- ========== 核心交互 ESP 逻辑（重构版） ==========
+-- ========== 核心交互 ESP 逻辑 ==========
 local interactCache = {}
 
 local function cleanupInteractESP()
@@ -486,7 +505,7 @@ end
 -- 后台扫描线程，不再阻塞主渲染帧
 task.spawn(function()
     while true do
-        task.wait(1.5) -- 每 1.5 秒扫描一次
+        task.wait(1.5)
         
         if not espState.Interact then
             if next(interactCache) then cleanupInteractESP() end
@@ -494,11 +513,9 @@ task.spawn(function()
             for _, obj in ipairs(workspace:GetDescendants()) do
                 local target = nil
                 
-                -- 1. 精准寻找包含交互组件的主体
                 if obj:IsA("ProximityPrompt") or obj:IsA("ClickDetector") then
                     local part = obj:FindFirstAncestorWhichIsA("BasePart")
                     if part then
-                        -- 优先高亮整个模型（比如宝箱），否则只高亮部件
                         local model = part:FindFirstAncestorWhichIsA("Model")
                         target = model or part
                     end
@@ -506,42 +523,42 @@ task.spawn(function()
                     target = obj
                 end
                 
-                -- 2. 如果找到了目标，且之前没有挂载过高亮
                 if target and not interactCache[target] then
                     local hl = Instance.new("Highlight")
                     hl.Name = "Interact_Highlight"
-                    hl.FillColor = Color3.fromRGB(0, 255, 100) -- 绿色
+                    hl.FillColor = Color3.fromRGB(0, 255, 100)
                     hl.OutlineColor = Color3.fromRGB(255, 255, 255)
                     hl.FillTransparency = 0.4
                     hl.OutlineTransparency = 0
                     hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                     hl.Parent = target
                     
-                    -- 添加悬浮提示文字
                     local bb = Instance.new("BillboardGui")
                     bb.Name = "Interact_Label"
                     bb.Adornee = target:IsA("Model") and (target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")) or target
-                    bb.Size = UDim2.new(0, 120, 0, 30)
-                    bb.StudsOffset = Vector3.new(0, 4, 0)
-                    bb.AlwaysOnTop = true
-                    bb.Parent = target
-                    
-                    local text = Instance.new("TextLabel")
-                    text.Text = "[可交互]"
-                    text.BackgroundTransparency = 1
-                    text.Size = UDim2.new(1, 0, 1, 0)
-                    text.Font = Enum.Font.GothamBold
-                    text.TextSize = 14
-                    text.TextColor3 = Color3.fromRGB(0, 255, 100)
-                    text.TextStrokeTransparency = 0
-                    text.Parent = bb
-                    
-                    interactCache[target] = {Highlight = hl, Label = bb}
-                    print("[交互ESP] 成功标记: " .. target:GetFullName())
+                    if bb.Adornee then
+                        bb.Size = UDim2.new(0, 120, 0, 30)
+                        bb.StudsOffset = Vector3.new(0, 4, 0)
+                        bb.AlwaysOnTop = true
+                        bb.Parent = target
+                        
+                        local text = Instance.new("TextLabel")
+                        text.Text = "[可交互]"
+                        text.BackgroundTransparency = 1
+                        text.Size = UDim2.new(1, 0, 1, 0)
+                        text.Font = Enum.Font.GothamBold
+                        text.TextSize = 14
+                        text.TextColor3 = Color3.fromRGB(0, 255, 100)
+                        text.TextStrokeTransparency = 0
+                        text.Parent = bb
+                        
+                        interactCache[target] = {Highlight = hl, Label = bb}
+                    else
+                        interactCache[target] = {Highlight = hl}
+                    end
                 end
             end
             
-            -- 3. 清理已经被销毁的目标
             for target, data in pairs(interactCache) do
                 if not target.Parent then
                     if data.Highlight then data.Highlight:Destroy() end
@@ -577,7 +594,6 @@ RunService.RenderStepped:Connect(function()
                 end
                 local data = espCache[targetPlayer]
 
-                -- 1. 高亮
                 if espState.Highlight then
                     if not data.Highlight or not data.Highlight.Parent then
                         local hl = Instance.new("Highlight")
@@ -594,7 +610,6 @@ RunService.RenderStepped:Connect(function()
                     if data.Highlight then data.Highlight:Destroy() data.Highlight = nil end
                 end
 
-                -- 2. 用户名
                 if espState.Name then
                     if not data.Billboard or not data.Billboard.Parent then
                         local bb = Instance.new("BillboardGui")
@@ -624,7 +639,6 @@ RunService.RenderStepped:Connect(function()
                     if data.Billboard then data.Billboard:Destroy() data.Billboard = nil data.NameLabel = nil end
                 end
 
-                -- 3. 距离
                 if espState.Line then
                     if localRoot then
                         local distance = (root.Position - localRoot.Position).Magnitude
@@ -671,7 +685,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- 清理死亡/离开的玩家
     for p, data in pairs(espCache) do
         if not p.Parent or not p.Character or not p.Character:FindFirstChild("Humanoid") or p.Character.Humanoid.Health <= 0 then
             if data.Highlight then data.Highlight:Destroy() end
