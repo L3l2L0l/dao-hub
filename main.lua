@@ -1,4 +1,4 @@
--- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP 和 Setting 面板
+-- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP、视觉 和 Setting 面板
 -- 优化：提高 UI 优先级，可覆盖 Esc 菜单，并解决游戏强制锁定鼠标无法点击的问题
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中，或者直接用执行器 loadstring
 
@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -19,6 +20,9 @@ if gethui then
     local oldHui = gethui():FindFirstChild("ResizableUISystem")
     if oldHui then oldHui:Destroy() end
 end
+-- 清理可能残留的视觉滤镜
+local oldEffect = Lighting:FindFirstChild("Vision_Highlight")
+if oldEffect then oldEffect:Destroy() end
 
 -- ========== 自动识别设备 ==========
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -161,6 +165,22 @@ local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
+-- 视觉按钮
+local visionButton = Instance.new("TextButton")
+visionButton.Name = "VisionButton"
+visionButton.Text = "视觉"
+visionButton.TextSize = 15
+visionButton.Font = Enum.Font.GothamBold
+visionButton.TextColor3 = Color3.fromRGB(200, 200, 210)
+visionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+visionButton.BorderSizePixel = 0
+visionButton.Size = UDim2.new(0, 80, 0, 36)
+visionButton.Parent = leftPanel
+
+local visionBtnCorner = Instance.new("UICorner")
+visionBtnCorner.CornerRadius = UDim.new(0, 6)
+visionBtnCorner.Parent = visionButton
+
 -- Setting 按钮
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
@@ -262,12 +282,47 @@ local interactLayout = Instance.new("UIListLayout")
 interactLayout.Padding = UDim.new(0, 10)
 interactLayout.Parent = interactList
 
+-- ========== 视觉页面（新增） ==========
+local visionPage = Instance.new("Frame")
+visionPage.Name = "VisionPage"
+visionPage.BackgroundTransparency = 1
+visionPage.Size = UDim2.new(1, 0, 1, 0)
+visionPage.Visible = false
+visionPage.Parent = content
+
+local visionTitle = Instance.new("TextLabel")
+visionTitle.Text = "视觉设置"
+visionTitle.BackgroundTransparency = 1
+visionTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+visionTitle.TextSize = 24
+visionTitle.Font = Enum.Font.GothamBold
+visionTitle.TextXAlignment = Enum.TextXAlignment.Left
+visionTitle.TextStrokeTransparency = 0.5
+visionTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+visionTitle.Size = UDim2.new(1, 0, 0, 36)
+visionTitle.Parent = visionPage
+
+local visionList = Instance.new("Frame")
+visionList.BackgroundTransparency = 1
+visionList.Position = UDim2.new(0, 0, 0, 50)
+visionList.Size = UDim2.new(1, 0, 1, -50)
+visionList.Parent = visionPage
+
+local visionLayout = Instance.new("UIListLayout")
+visionLayout.Padding = UDim.new(0, 12)
+visionLayout.Parent = visionList
+
 -- 状态表
 local espState = { 
     Highlight = false, 
     Name = false, 
     Line = false,
     Interact = false
+}
+
+local visualState = {
+    HighlightMode = false,
+    RemoveDarkness = false
 }
 
 -- 通用创建开关按钮函数
@@ -288,13 +343,26 @@ local function createToggleButton(parent, text, key, onColor)
     corner.Parent = btn
 
     btn.MouseButton1Click:Connect(function()
-        espState[key] = not espState[key]
-        if espState[key] then
-            btn.Text = text .. "：开"
-            btn.BackgroundColor3 = onColor or Color3.fromRGB(0, 120, 255)
+        if key == "HighlightMode" or key == "RemoveDarkness" then
+            visualState[key] = not visualState[key]
+            if visualState[key] then
+                btn.Text = text .. "：开"
+                btn.BackgroundColor3 = onColor or Color3.fromRGB(0, 120, 255)
+            else
+                btn.Text = text .. "：关"
+                btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            end
+            -- 触发视觉更新
+            if updateVisuals then updateVisuals() end
         else
-            btn.Text = text .. "：关"
-            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            espState[key] = not espState[key]
+            if espState[key] then
+                btn.Text = text .. "：开"
+                btn.BackgroundColor3 = onColor or Color3.fromRGB(0, 120, 255)
+            else
+                btn.Text = text .. "：关"
+                btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            end
         end
     end)
 end
@@ -306,6 +374,76 @@ createToggleButton(espList, "显示距离射线", "Line", Color3.fromRGB(0, 120,
 
 -- 创建交互 ESP 按钮
 createToggleButton(interactList, "高亮可交互目标", "Interact", Color3.fromRGB(0, 200, 80))
+
+-- 创建视觉页面按钮
+createToggleButton(visionList, "开启高亮模式", "HighlightMode", Color3.fromRGB(255, 180, 0))
+createToggleButton(visionList, "删除地图黑暗效果", "RemoveDarkness", Color3.fromRGB(255, 100, 100))
+
+-- ========== 视觉核心逻辑 ==========
+local highlightEffect = nil
+local originalLighting = {
+    Brightness = nil,
+    Ambient = nil,
+    OutdoorAmbient = nil,
+    ClockTime = nil,
+    FogEnd = nil
+}
+
+updateVisuals = function()
+    -- 1. 高亮模式
+    if visualState.HighlightMode then
+        if not highlightEffect or not highlightEffect.Parent then
+            highlightEffect = Instance.new("ColorCorrectionEffect")
+            highlightEffect.Name = "Vision_Highlight"
+            highlightEffect.Brightness = 0.3
+            highlightEffect.Contrast = 0.2
+            highlightEffect.Saturation = 0.1
+            highlightEffect.Parent = Lighting
+        end
+    else
+        if highlightEffect then
+            highlightEffect:Destroy()
+            highlightEffect = nil
+        end
+    end
+
+    -- 2. 删除黑暗效果
+    if visualState.RemoveDarkness then
+        -- 保存原始光照设置（只在第一次开启时保存）
+        if not originalLighting.Brightness then
+            originalLighting.Brightness = Lighting.Brightness
+            originalLighting.Ambient = Lighting.Ambient
+            originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient
+            originalLighting.ClockTime = Lighting.ClockTime
+            originalLighting.FogEnd = Lighting.FogEnd
+        end
+        
+        -- 强制调亮
+        pcall(function()
+            Lighting.Brightness = 2
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+        end)
+    else
+        -- 恢复原始设置
+        if originalLighting.Brightness then
+            pcall(function()
+                Lighting.Brightness = originalLighting.Brightness
+                Lighting.Ambient = originalLighting.Ambient
+                Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
+                Lighting.ClockTime = originalLighting.ClockTime
+                Lighting.FogEnd = originalLighting.FogEnd
+            end)
+            
+            -- 重置缓存
+            originalLighting = {
+                Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil
+            }
+        end
+    end
+end
 
 -- ========== 设置页面 ==========
 local settingPage = Instance.new("Frame")
@@ -459,20 +597,30 @@ local function highlightButton(btn)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 end
 
-espButton.MouseButton1Click:Connect(function()
+local function switchPage(pageToShow, btnToHighlight)
     defaultPage.Visible = false
-    espPage.Visible = true
+    espPage.Visible = false
     settingPage.Visible = false
-    highlightButton(espButton)
-    resetButton(settingButton)
+    visionPage.Visible = false
+    
+    pageToShow.Visible = true
+    
+    highlightButton(btnToHighlight)
+    if btnToHighlight ~= espButton then resetButton(espButton) end
+    if btnToHighlight ~= settingButton then resetButton(settingButton) end
+    if btnToHighlight ~= visionButton then resetButton(visionButton) end
+end
+
+espButton.MouseButton1Click:Connect(function()
+    switchPage(espPage, espButton)
+end)
+
+visionButton.MouseButton1Click:Connect(function()
+    switchPage(visionPage, visionButton)
 end)
 
 settingButton.MouseButton1Click:Connect(function()
-    defaultPage.Visible = false
-    espPage.Visible = false
-    settingPage.Visible = true
-    highlightButton(settingButton)
-    resetButton(espButton)
+    switchPage(settingPage, settingButton)
 end)
 
 -- ========== 核心玩家 ESP 逻辑 ==========
@@ -488,7 +636,7 @@ local function cleanupESP()
     espCache = {}
 end
 
--- ========== 核心交互 ESP 逻辑（修正版，防止高亮整个地图） ==========
+-- ========== 核心交互 ESP 逻辑 ==========
 local interactCache = {}
 
 local function cleanupInteractESP()
@@ -507,11 +655,9 @@ task.spawn(function()
             if next(interactCache) then cleanupInteractESP() end
         else
             for _, obj in ipairs(workspace:GetDescendants()) do
-                -- 严格只找按 E 交互的 ProximityPrompt
                 if obj:IsA("ProximityPrompt") then
                     local targetPart = nil
                     
-                    -- 精准寻找 Prompt 所依附的部件
                     if obj.Parent:IsA("BasePart") then
                         targetPart = obj.Parent
                     elseif obj.Parent:IsA("Attachment") and obj.Parent.Parent:IsA("BasePart") then
@@ -519,8 +665,6 @@ task.spawn(function()
                     end
                     
                     if targetPart and not interactCache[targetPart] then
-                        -- 关键修复：只高亮合理大小的部件，避免墙体/地板导致全屏变绿
-                        -- 如果部件尺寸过大（例如 magnitude > 30），就只放标签不喷漆
                         local hl = nil
                         if targetPart.Size.Magnitude <= 30 then
                             hl = Instance.new("Highlight")
@@ -533,7 +677,6 @@ task.spawn(function()
                             hl.Parent = targetPart
                         end
                         
-                        -- 添加悬浮提示文字
                         local bb = Instance.new("BillboardGui")
                         bb.Name = "Interact_Label"
                         bb.Adornee = targetPart
@@ -557,7 +700,6 @@ task.spawn(function()
                 end
             end
             
-            -- 清理已经被销毁的目标
             for target, data in pairs(interactCache) do
                 if not target.Parent then
                     if data.Highlight then data.Highlight:Destroy() end
