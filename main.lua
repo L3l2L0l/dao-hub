@@ -1,4 +1,4 @@
--- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP、视觉、通用 和 Setting 面板
+-- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + ESP、视觉、通用、自瞄 和 Setting 面板
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中，或者直接用执行器 loadstring
 
 local Players = game:GetService("Players")
@@ -10,7 +10,7 @@ local Lighting = game:GetService("Lighting")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- ========== 绝对彻底的 UI 清理（防止重叠残留） ==========
+-- ========== 绝对彻底的 UI 清理 ==========
 for _, gui in ipairs(playerGui:GetChildren()) do
     if gui.Name == "ResizableUISystem" then
         gui:Destroy()
@@ -133,7 +133,7 @@ blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 blueLine.BorderSizePixel = 0
 blueLine.Parent = main
 
--- ========== 左侧功能按钮 ==========
+-- ========== 左侧功能按钮（严格 Y + 46 递增） ==========
 local espButton = Instance.new("TextButton")
 espButton.Name = "ESPButton"
 espButton.Text = "ESP"
@@ -173,6 +173,21 @@ generalButton.Position = UDim2.new(0, 0, 0, 142)
 generalButton.Parent = main
 local generalBtnCorner = Instance.new("UICorner") generalBtnCorner.CornerRadius = UDim.new(0, 6) generalBtnCorner.Parent = generalButton
 
+-- 新增：自瞄按钮（Y=188）
+local aimbotButton = Instance.new("TextButton")
+aimbotButton.Name = "AimbotButton"
+aimbotButton.Text = "自瞄"
+aimbotButton.TextSize = 15
+aimbotButton.Font = Enum.Font.GothamBold
+aimbotButton.TextColor3 = Color3.fromRGB(200, 200, 210)
+aimbotButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+aimbotButton.BorderSizePixel = 0
+aimbotButton.Size = UDim2.new(0, 80, 0, 36)
+aimbotButton.Position = UDim2.new(0, 0, 0, 188)
+aimbotButton.Parent = main
+local aimbotBtnCorner = Instance.new("UICorner") aimbotBtnCorner.CornerRadius = UDim.new(0, 6) aimbotBtnCorner.Parent = aimbotButton
+
+-- Setting 按钮顺延到 Y=234
 local settingButton = Instance.new("TextButton")
 settingButton.Name = "SettingButton"
 settingButton.Text = "Setting"
@@ -182,7 +197,7 @@ settingButton.TextColor3 = Color3.fromRGB(200, 200, 210)
 settingButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 settingButton.BorderSizePixel = 0
 settingButton.Size = UDim2.new(0, 80, 0, 36)
-settingButton.Position = UDim2.new(0, 0, 0, 188)
+settingButton.Position = UDim2.new(0, 0, 0, 234)
 settingButton.Parent = main
 local settingBtnCorner = Instance.new("UICorner") settingBtnCorner.CornerRadius = UDim.new(0, 6) settingBtnCorner.Parent = settingButton
 
@@ -194,111 +209,77 @@ content.Position = UDim2.new(0, 100, 0, 110)
 content.Size = UDim2.new(1, -110, 1, -120)
 content.Parent = main
 
--- ========== ESP 页面 ==========
+-- ESP 页面
 local espPage = Instance.new("Frame")
 espPage.Name = "ESPPage"
 espPage.BackgroundTransparency = 1
 espPage.Size = UDim2.new(1, 0, 1, 0)
 espPage.Visible = false
 espPage.Parent = content
-
-local espTitle = Instance.new("TextLabel")
-espTitle.Text = "玩家 ESP"
-espTitle.BackgroundTransparency = 1
-espTitle.TextColor3 = Color3.fromRGB(0, 150, 255)
-espTitle.TextSize = 22
-espTitle.Font = Enum.Font.GothamBold
-espTitle.TextXAlignment = Enum.TextXAlignment.Left
-espTitle.TextStrokeTransparency = 0.5
-espTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-espTitle.Size = UDim2.new(1, 0, 0, 36)
-espTitle.Parent = espPage
-
-local espList = Instance.new("Frame")
-espList.BackgroundTransparency = 1
-espList.Position = UDim2.new(0, 0, 0, 40)
-espList.Size = UDim2.new(1, 0, 0, 150)
-espList.Parent = espPage
+local espTitle = Instance.new("TextLabel") espTitle.Text = "玩家 ESP" espTitle.BackgroundTransparency = 1 espTitle.TextColor3 = Color3.fromRGB(0, 150, 255) espTitle.TextSize = 22 espTitle.Font = Enum.Font.GothamBold espTitle.TextXAlignment = Enum.TextXAlignment.Left espTitle.TextStrokeTransparency = 0.5 espTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) espTitle.Size = UDim2.new(1, 0, 0, 36) espTitle.Parent = espPage
+local espList = Instance.new("Frame") espList.BackgroundTransparency = 1 espList.Position = UDim2.new(0, 0, 0, 40) espList.Size = UDim2.new(1, 0, 0, 150) espList.Parent = espPage
 local espLayout = Instance.new("UIListLayout") espLayout.Padding = UDim.new(0, 10) espLayout.Parent = espList
-
-local interactTitle = Instance.new("TextLabel")
-interactTitle.Text = "交互 ESP"
-interactTitle.BackgroundTransparency = 1
-interactTitle.TextColor3 = Color3.fromRGB(0, 255, 100)
-interactTitle.TextSize = 22
-interactTitle.Font = Enum.Font.GothamBold
-interactTitle.TextXAlignment = Enum.TextXAlignment.Left
-interactTitle.TextStrokeTransparency = 0.5
-interactTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-interactTitle.Size = UDim2.new(1, 0, 0, 36)
-interactTitle.Position = UDim2.new(0, 0, 0, 200)
-interactTitle.Parent = espPage
-
-local interactList = Instance.new("Frame")
-interactList.BackgroundTransparency = 1
-interactList.Position = UDim2.new(0, 0, 0, 240)
-interactList.Size = UDim2.new(1, 0, 0, 100)
-interactList.Parent = espPage
+local interactTitle = Instance.new("TextLabel") interactTitle.Text = "交互 ESP" interactTitle.BackgroundTransparency = 1 interactTitle.TextColor3 = Color3.fromRGB(0, 255, 100) interactTitle.TextSize = 22 interactTitle.Font = Enum.Font.GothamBold interactTitle.TextXAlignment = Enum.TextXAlignment.Left interactTitle.TextStrokeTransparency = 0.5 interactTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) interactTitle.Size = UDim2.new(1, 0, 0, 36) interactTitle.Position = UDim2.new(0, 0, 0, 200) interactTitle.Parent = espPage
+local interactList = Instance.new("Frame") interactList.BackgroundTransparency = 1 interactList.Position = UDim2.new(0, 0, 0, 240) interactList.Size = UDim2.new(1, 0, 0, 100) interactList.Parent = espPage
 local interactLayout = Instance.new("UIListLayout") interactLayout.Padding = UDim.new(0, 10) interactLayout.Parent = interactList
 
--- ========== 视觉页面 ==========
+-- 视觉页面
 local visionPage = Instance.new("Frame")
 visionPage.Name = "VisionPage"
 visionPage.BackgroundTransparency = 1
 visionPage.Size = UDim2.new(1, 0, 1, 0)
 visionPage.Visible = false
 visionPage.Parent = content
-
-local visionTitle = Instance.new("TextLabel")
-visionTitle.Text = "视觉设置"
-visionTitle.BackgroundTransparency = 1
-visionTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-visionTitle.TextSize = 24
-visionTitle.Font = Enum.Font.GothamBold
-visionTitle.TextXAlignment = Enum.TextXAlignment.Left
-visionTitle.TextStrokeTransparency = 0.5
-visionTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-visionTitle.Size = UDim2.new(1, 0, 0, 36)
-visionTitle.Parent = visionPage
-
-local visionList = Instance.new("Frame")
-visionList.BackgroundTransparency = 1
-visionList.Position = UDim2.new(0, 0, 0, 50)
-visionList.Size = UDim2.new(1, 0, 1, -50)
-visionList.Parent = visionPage
+local visionTitle = Instance.new("TextLabel") visionTitle.Text = "视觉设置" visionTitle.BackgroundTransparency = 1 visionTitle.TextColor3 = Color3.fromRGB(255, 255, 255) visionTitle.TextSize = 24 visionTitle.Font = Enum.Font.GothamBold visionTitle.TextXAlignment = Enum.TextXAlignment.Left visionTitle.TextStrokeTransparency = 0.5 visionTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) visionTitle.Size = UDim2.new(1, 0, 0, 36) visionTitle.Parent = visionPage
+local visionList = Instance.new("Frame") visionList.BackgroundTransparency = 1 visionList.Position = UDim2.new(0, 0, 0, 50) visionList.Size = UDim2.new(1, 0, 1, -50) visionList.Parent = visionPage
 local visionLayout = Instance.new("UIListLayout") visionLayout.Padding = UDim.new(0, 12) visionLayout.Parent = visionList
 
--- ========== 通用页面 ==========
+-- 通用页面
 local generalPage = Instance.new("Frame")
 generalPage.Name = "GeneralPage"
 generalPage.BackgroundTransparency = 1
 generalPage.Size = UDim2.new(1, 0, 1, 0)
 generalPage.Visible = false
 generalPage.Parent = content
-
-local generalTitle = Instance.new("TextLabel")
-generalTitle.Text = "通用功能"
-generalTitle.BackgroundTransparency = 1
-generalTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-generalTitle.TextSize = 24
-generalTitle.Font = Enum.Font.GothamBold
-generalTitle.TextXAlignment = Enum.TextXAlignment.Left
-generalTitle.TextStrokeTransparency = 0.5
-generalTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-generalTitle.Size = UDim2.new(1, 0, 0, 36)
-generalTitle.Parent = generalPage
-
-local generalList = Instance.new("Frame")
-generalList.BackgroundTransparency = 1
-generalList.Position = UDim2.new(0, 0, 0, 50)
-generalList.Size = UDim2.new(1, 0, 1, -50)
-generalList.Parent = generalPage
+local generalTitle = Instance.new("TextLabel") generalTitle.Text = "通用功能" generalTitle.BackgroundTransparency = 1 generalTitle.TextColor3 = Color3.fromRGB(255, 255, 255) generalTitle.TextSize = 24 generalTitle.Font = Enum.Font.GothamBold generalTitle.TextXAlignment = Enum.TextXAlignment.Left generalTitle.TextStrokeTransparency = 0.5 generalTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) generalTitle.Size = UDim2.new(1, 0, 0, 36) generalTitle.Parent = generalPage
+local generalList = Instance.new("Frame") generalList.BackgroundTransparency = 1 generalList.Position = UDim2.new(0, 0, 0, 50) generalList.Size = UDim2.new(1, 0, 1, -50) generalList.Parent = generalPage
 local generalLayout = Instance.new("UIListLayout") generalLayout.Padding = UDim.new(0, 12) generalLayout.Parent = generalList
+
+-- 自瞄页面（新增）
+local aimbotPage = Instance.new("Frame")
+aimbotPage.Name = "AimbotPage"
+aimbotPage.BackgroundTransparency = 1
+aimbotPage.Size = UDim2.new(1, 0, 1, 0)
+aimbotPage.Visible = false
+aimbotPage.Parent = content
+
+local aimbotTitle = Instance.new("TextLabel")
+aimbotTitle.Text = "自瞄设置"
+aimbotTitle.BackgroundTransparency = 1
+aimbotTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+aimbotTitle.TextSize = 24
+aimbotTitle.Font = Enum.Font.GothamBold
+aimbotTitle.TextXAlignment = Enum.TextXAlignment.Left
+aimbotTitle.TextStrokeTransparency = 0.5
+aimbotTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+aimbotTitle.Size = UDim2.new(1, 0, 0, 36)
+aimbotTitle.Parent = aimbotPage
+
+local aimbotList = Instance.new("Frame")
+aimbotList.BackgroundTransparency = 1
+aimbotList.Position = UDim2.new(0, 0, 0, 50)
+aimbotList.Size = UDim2.new(1, 0, 1, -50)
+aimbotList.Parent = aimbotPage
+
+local aimbotLayout = Instance.new("UIListLayout")
+aimbotLayout.Padding = UDim.new(0, 12)
+aimbotLayout.Parent = aimbotList
 
 -- 状态表
 local espState = { Highlight = false, Name = false, Line = false, Interact = false }
 local visualState = { HighlightMode = false, RemoveDarkness = false }
 local generalState = { Fly = false, AntiFling = false }
+local aimbotState = { Enabled = false, FOV = 150 } -- 默认 FOV 半径 150 像素
 
 -- 通用创建开关按钮函数
 local function createToggleButton(parent, text, key, onColor, customState)
@@ -338,6 +319,140 @@ createToggleButton(interactList, "高亮可交互目标", "Interact", Color3.fro
 createToggleButton(visionList, "开启高亮模式", "HighlightMode", Color3.fromRGB(255, 180, 0))
 createToggleButton(visionList, "删除地图黑暗效果", "RemoveDarkness", Color3.fromRGB(255, 100, 100))
 
+-- ========== 自瞄UI构建 ==========
+local aimbotToggle = Instance.new("TextButton")
+aimbotToggle.Name = "AimbotToggle"
+aimbotToggle.Text = "自瞄锁定：关"
+aimbotToggle.TextSize = 16
+aimbotToggle.Font = Enum.Font.GothamBold
+aimbotToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+aimbotToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+aimbotToggle.BorderSizePixel = 0
+aimbotToggle.Size = UDim2.new(0, 200, 0, 38)
+aimbotToggle.Parent = aimbotList
+local aimbotToggleCorner = Instance.new("UICorner") aimbotToggleCorner.CornerRadius = UDim.new(0, 6) aimbotToggleCorner.Parent = aimbotToggle
+
+aimbotToggle.MouseButton1Click:Connect(function()
+    aimbotState.Enabled = not aimbotState.Enabled
+    if aimbotState.Enabled then
+        aimbotToggle.Text = "自瞄锁定：开"
+        aimbotToggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    else
+        aimbotToggle.Text = "自瞄锁定：关"
+        aimbotToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    end
+end)
+
+-- FOV 设置输入框
+local fovContainer = Instance.new("Frame")
+fovContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+fovContainer.BorderSizePixel = 0
+fovContainer.Size = UDim2.new(0, 320, 0, 50)
+fovContainer.Parent = aimbotList
+local fovCorner = Instance.new("UICorner") fovCorner.CornerRadius = UDim.new(0, 8) fovCorner.Parent = fovContainer
+
+local fovLabel = Instance.new("TextLabel")
+fovLabel.Text = "FOV 大小 (像素)"
+fovLabel.Font = Enum.Font.GothamBold
+fovLabel.TextSize = 16
+fovLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovLabel.BackgroundTransparency = 1
+fovLabel.TextXAlignment = Enum.TextXAlignment.Left
+fovLabel.Size = UDim2.new(0.6, 0, 1, 0)
+fovLabel.Position = UDim2.new(0, 15, 0, 0)
+fovLabel.Parent = fovContainer
+
+local fovBox = Instance.new("TextBox")
+fovBox.Text = tostring(aimbotState.FOV)
+fovBox.Font = Enum.Font.GothamBold
+fovBox.TextSize = 16
+fovBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovBox.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+fovBox.BorderSizePixel = 0
+fovBox.Size = UDim2.new(0, 80, 0, 34)
+fovBox.Position = UDim2.new(1, -95, 0.5, -17)
+fovBox.Parent = fovContainer
+local fovBoxCorner = Instance.new("UICorner") fovBoxCorner.CornerRadius = UDim.new(0, 6) fovBoxCorner.Parent = fovBox
+
+fovBox.FocusLost:Connect(function()
+    local num = tonumber(fovBox.Text)
+    if num and num > 10 and num < 1000 then
+        aimbotState.FOV = num
+        if fovCircle then fovCircle.Size = UDim2.new(0, num * 2, 0, num * 2) end
+    else
+        fovBox.Text = tostring(aimbotState.FOV)
+    end
+end)
+
+-- 屏幕上的 FOV 可视圆圈
+local fovCircle = Instance.new("Frame")
+fovCircle.Name = "FovCircle"
+fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+fovCircle.Size = UDim2.new(0, aimbotState.FOV * 2, 0, aimbotState.FOV * 2)
+fovCircle.BackgroundTransparency = 1
+fovCircle.Visible = false
+fovCircle.Parent = screenGui
+
+local fovCircleCorner = Instance.new("UICorner") fovCircleCorner.CornerRadius = UDim.new(1, 0) fovCircleCorner.Parent = fovCircle
+local fovCircleStroke = Instance.new("UIStroke") fovCircleStroke.Color = Color3.fromRGB(0, 255, 255) fovCircleStroke.Thickness = 2 fovCircleStroke.Transparency = 0.3 fovCircleStroke.Parent = fovCircle
+
+-- ========== 核心自瞄逻辑 ==========
+RunService.RenderStepped:Connect(function()
+    -- 同步 FOV 圆圈的可见性
+    if fovCircle then
+        fovCircle.Visible = aimbotState.Enabled
+    end
+
+    if not aimbotState.Enabled then return end
+
+    local camera = workspace.CurrentCamera
+    local localChar = player.Character
+    if not localChar then return end
+    local localRoot = localChar:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return end
+
+    local closestTarget = nil
+    local minDistance = aimbotState.FOV
+
+    -- 获取屏幕中心（FOV 圆圈的圆心）
+    local screenCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+
+    for _, target in ipairs(Players:GetPlayers()) do
+        if target ~= player then
+            local char = target.Character
+            if char then
+                local head = char:FindFirstChild("Head")
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if head and humanoid and humanoid.Health > 0 then
+                    -- 将头部世界坐标转换为屏幕坐标
+                    local screenPoint, onScreen = camera:WorldToScreenPoint(head.Position)
+                    if onScreen then
+                        local screenPos = Vector2.new(screenPoint.X, screenPoint.Y)
+                        local distance = (screenPos - screenCenter).Magnitude
+                        -- 判断是否在 FOV 半径内
+                        if distance <= aimbotState.FOV then
+                            if distance < minDistance then
+                                minDistance = distance
+                                closestTarget = head
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    -- 如果找到了目标，平滑地将摄像机转向目标的头部
+    if closestTarget then
+        local targetPos = closestTarget.Position
+        local currentCFrame = camera.CFrame
+        local newCFrame = CFrame.new(currentCFrame.Position, targetPos)
+        -- 0.25 是平滑系数，数值越大锁定越快，越小越平滑
+        camera.CFrame = currentCFrame:Lerp(newCFrame, 0.25)
+    end
+end)
+
 -- ========== 通用功能逻辑构建 ==========
 local function createSpeedInput(parent, labelText, defaultValue, callback)
     local container = Instance.new("Frame") container.BackgroundColor3 = Color3.fromRGB(30, 30, 36) container.BorderSizePixel = 0 container.Size = UDim2.new(0, 320, 0, 50) container.Parent = parent
@@ -372,7 +487,6 @@ flyBtn.MouseButton1Click:Connect(function()
     if updateFly then updateFly() end
 end)
 
--- 执行甩飞按钮
 local flingBtn = Instance.new("TextButton")
 flingBtn.Name = "FlingButton"
 flingBtn.Text = "执行甩飞"
@@ -384,25 +498,15 @@ flingBtn.BorderSizePixel = 0
 flingBtn.Size = UDim2.new(0, 200, 0, 38)
 flingBtn.Parent = generalList
 local flingCorner = Instance.new("UICorner") flingCorner.CornerRadius = UDim.new(0, 6) flingCorner.Parent = flingBtn
-
 flingBtn.MouseButton1Click:Connect(function()
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = p.Character.HumanoidRootPart
             pcall(function()
                 hrp:SetNetworkOwner(player)
-                local bv = Instance.new("BodyAngularVelocity")
-                bv.AngularVelocity = Vector3.new(0, 999999, 0)
-                bv.MaxTorque = Vector3.new(999999, 999999, 999999)
-                bv.Parent = hrp
-                local bv2 = Instance.new("BodyVelocity")
-                bv2.Velocity = Vector3.new(math.random(-500, 500), 500, math.random(-500, 500))
-                bv2.MaxForce = Vector3.new(999999, 999999, 999999)
-                bv2.Parent = hrp
-                task.delay(1, function() 
-                    if bv then bv:Destroy() end 
-                    if bv2 then bv2:Destroy() end
-                end)
+                local bv = Instance.new("BodyAngularVelocity") bv.AngularVelocity = Vector3.new(0, 999999, 0) bv.MaxTorque = Vector3.new(999999, 999999, 999999) bv.Parent = hrp
+                local bv2 = Instance.new("BodyVelocity") bv2.Velocity = Vector3.new(math.random(-500, 500), 500, math.random(-500, 500)) bv2.MaxForce = Vector3.new(999999, 999999, 999999) bv2.Parent = hrp
+                task.delay(1, function() if bv then bv:Destroy() end if bv2 then bv2:Destroy() end end)
             end)
         end
     end
@@ -411,85 +515,52 @@ end)
 createToggleButton(generalList, "防甩飞", "AntiFling", Color3.fromRGB(255, 150, 0), generalState)
 
 -- ========== 核心通用逻辑实现 ==========
-local flyBodyVelocity = nil
-local flyBodyGyro = nil
-local flyConnection = nil
-local noclipConnection = nil -- 新增 Noclip 连接
-
+local flyBodyVelocity = nil local flyBodyGyro = nil local flyConnection = nil local noclipConnection = nil
 updateFly = function()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local hrp = char.HumanoidRootPart
 
     if generalState.Fly then
-        -- 1. 初始化飞行物理组件
         if not flyBodyVelocity then
-            flyBodyVelocity = Instance.new("BodyVelocity")
-            flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            flyBodyVelocity.Parent = hrp
-
-            flyBodyGyro = Instance.new("BodyGyro")
-            flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-            flyBodyGyro.P = 1000
-            flyBodyGyro.Parent = hrp
+            flyBodyVelocity = Instance.new("BodyVelocity") flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5) flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) flyBodyVelocity.Parent = hrp
+            flyBodyGyro = Instance.new("BodyGyro") flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5) flyBodyGyro.P = 1000 flyBodyGyro.Parent = hrp
         end
-
-        -- 2. 开启 Noclip（自动穿墙）
         if noclipConnection then noclipConnection:Disconnect() end
         noclipConnection = RunService.Stepped:Connect(function()
             if player.Character then
                 for _, part in ipairs(player.Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
+                    if part:IsA("BasePart") then part.CanCollide = false end
                 end
             end
         end)
-
-        -- 3. 键盘控制逻辑
         if flyConnection then flyConnection:Disconnect() end
         flyConnection = RunService.RenderStepped:Connect(function()
             if not generalState.Fly or not char.Parent then return end
             local camera = workspace.CurrentCamera
             local moveDirection = Vector3.new(0, 0, 0)
-
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDirection += camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDirection -= camera.CFrame.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDirection -= camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDirection += camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDirection += Vector3.new(0, 1, 0) end
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDirection -= Vector3.new(0, 1, 0) end
-
-            if moveDirection.Magnitude > 0 then
-                flyBodyVelocity.Velocity = moveDirection.Unit * 60
-            else
-                flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
-            end
+            if moveDirection.Magnitude > 0 then flyBodyVelocity.Velocity = moveDirection.Unit * 60 else flyBodyVelocity.Velocity = Vector3.new(0, 0, 0) end
             flyBodyGyro.CFrame = camera.CFrame
         end)
     else
-        -- 关闭飞行时清理所有相关组件
         if flyBodyVelocity then flyBodyVelocity:Destroy() flyBodyVelocity = nil end
         if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
         if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-        
-        -- 关闭 Noclip 并恢复碰撞
         if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
         if char then
             for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
+                if part:IsA("BasePart") then part.CanCollide = true end
             end
         end
     end
 end
-
-player.CharacterAdded:Connect(function()
-    task.wait(1)
-    if generalState.Fly then updateFly() end
-end)
+player.CharacterAdded:Connect(function() task.wait(1) if generalState.Fly then updateFly() end end)
 
 local antiFlingConnection = nil
 updateAntiFling = function()
@@ -514,10 +585,7 @@ local originalLighting = { Brightness = nil, Ambient = nil, OutdoorAmbient = nil
 updateVisuals = function()
     if visualState.HighlightMode then
         if not highlightEffect or not highlightEffect.Parent then
-            highlightEffect = Instance.new("ColorCorrectionEffect")
-            highlightEffect.Name = "Vision_Highlight"
-            highlightEffect.Brightness = 0.3 highlightEffect.Contrast = 0.2 highlightEffect.Saturation = 0.1
-            highlightEffect.Parent = Lighting
+            highlightEffect = Instance.new("ColorCorrectionEffect") highlightEffect.Name = "Vision_Highlight" highlightEffect.Brightness = 0.3 highlightEffect.Contrast = 0.2 highlightEffect.Saturation = 0.1 highlightEffect.Parent = Lighting
         end
     else
         if highlightEffect then highlightEffect:Destroy() highlightEffect = nil end
@@ -526,14 +594,10 @@ updateVisuals = function()
         if not originalLighting.Brightness then
             originalLighting.Brightness = Lighting.Brightness originalLighting.Ambient = Lighting.Ambient originalLighting.OutdoorAmbient = Lighting.OutdoorAmbient originalLighting.ClockTime = Lighting.ClockTime originalLighting.FogEnd = Lighting.FogEnd
         end
-        pcall(function()
-            Lighting.Brightness = 2 Lighting.Ambient = Color3.fromRGB(255, 255, 255) Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) Lighting.ClockTime = 14 Lighting.FogEnd = 100000
-        end)
+        pcall(function() Lighting.Brightness = 2 Lighting.Ambient = Color3.fromRGB(255, 255, 255) Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) Lighting.ClockTime = 14 Lighting.FogEnd = 100000 end)
     else
         if originalLighting.Brightness then
-            pcall(function()
-                Lighting.Brightness = originalLighting.Brightness Lighting.Ambient = originalLighting.Ambient Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient Lighting.ClockTime = originalLighting.ClockTime Lighting.FogEnd = originalLighting.FogEnd
-            end)
+            pcall(function() Lighting.Brightness = originalLighting.Brightness Lighting.Ambient = originalLighting.Ambient Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient Lighting.ClockTime = originalLighting.ClockTime Lighting.FogEnd = originalLighting.FogEnd end)
             originalLighting = { Brightness = nil, Ambient = nil, OutdoorAmbient = nil, ClockTime = nil, FogEnd = nil }
         end
     end
@@ -580,8 +644,8 @@ end)
 local function resetButton(btn) btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) btn.TextColor3 = Color3.fromRGB(200, 200, 210) end
 local function highlightButton(btn) btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255) btn.TextColor3 = Color3.fromRGB(255, 255, 255) end
 
-local allButtons = {espButton, visionButton, generalButton, settingButton}
-local allPages = {espPage, visionPage, generalPage, settingPage}
+local allButtons = {espButton, visionButton, generalButton, aimbotButton, settingButton}
+local allPages = {espPage, visionPage, generalPage, aimbotPage, settingPage}
 
 local function switchPage(pageToShow, btnToHighlight)
     for _, p in ipairs(allPages) do p.Visible = false end
@@ -593,6 +657,7 @@ end
 espButton.MouseButton1Click:Connect(function() switchPage(espPage, espButton) end)
 visionButton.MouseButton1Click:Connect(function() switchPage(visionPage, visionButton) end)
 generalButton.MouseButton1Click:Connect(function() switchPage(generalPage, generalButton) end)
+aimbotButton.MouseButton1Click:Connect(function() switchPage(aimbotPage, aimbotButton) end)
 settingButton.MouseButton1Click:Connect(function() switchPage(settingPage, settingButton) end)
 
 switchPage(espPage, espButton)
