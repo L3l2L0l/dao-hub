@@ -1,4 +1,4 @@
--- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + 右侧 ESP 功能面板
+-- 自动生成占屏幕 50% 的窗口，带顶部彩虹标题、左侧功能栏 + 右侧 ESP 功能面板（高亮度对比版）
 -- 放在 StarterPlayer > StarterPlayerScripts 下的 LocalScript 中
 
 local Players = game:GetService("Players")
@@ -36,13 +36,13 @@ screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- ========== 主窗口 ==========
+-- ========== 主窗口（背景调深，提高对比度） ==========
 local main = Instance.new("Frame")
 main.Name = "MainWindow"
 main.AnchorPoint = Vector2.new(0.5, 0.5)
 main.Position = UDim2.fromScale(0.5, 0.5)
 main.Size = UDim2.fromScale(0.5, 0.5)
-main.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- 改为极深色
 main.BorderSizePixel = 0
 main.Parent = screenGui
 
@@ -51,11 +51,11 @@ mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = main
 
 local mainStroke = Instance.new("UIStroke")
-mainStroke.Color = Color3.fromRGB(80, 80, 95)
-mainStroke.Thickness = 1
+mainStroke.Color = Color3.fromRGB(100, 100, 120) -- 边框稍微亮一点点
+mainStroke.Thickness = 1.5
 mainStroke.Parent = main
 
--- ========== 顶部标题栏（新增） ==========
+-- ========== 顶部标题栏 ==========
 local topBar = Instance.new("Frame")
 topBar.Name = "TopBar"
 topBar.Size = UDim2.new(1, 0, 0, 50)
@@ -68,25 +68,26 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Name = "TitleLabel"
 titleLabel.Text = "dao hub"
 titleLabel.Font = Enum.Font.GothamBlack
-titleLabel.TextSize = 28
+titleLabel.TextSize = 30 -- 字体加大
 titleLabel.BackgroundTransparency = 1
 titleLabel.Size = UDim2.new(1, 0, 0, 40)
 titleLabel.Position = UDim2.new(0, 0, 0, 5)
+titleLabel.TextStrokeTransparency = 0.5
+titleLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 titleLabel.Parent = topBar
 
 -- 彩虹渐变
 local gradient = Instance.new("UIGradient")
 gradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),     -- 红
-    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 165, 0)),  -- 橙
-    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 255, 0)),  -- 黄
-    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 0)),    -- 绿
-    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 127, 255)),  -- 蓝
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(128, 0, 128))     -- 紫
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 50)),    -- 亮红
+    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 180, 0)),   -- 亮橙
+    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(255, 255, 50)),  -- 亮黄
+    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(50, 255, 50)),   -- 亮绿
+    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(50, 150, 255)),  -- 亮蓝
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 50, 255))     -- 亮紫
 })
 gradient.Parent = titleLabel
 
--- 让彩虹缓缓流动
 task.spawn(function()
     while titleLabel.Parent do
         task.wait(0.05)
@@ -99,7 +100,7 @@ local titleDivider = Instance.new("Frame")
 titleDivider.Name = "TitleDivider"
 titleDivider.Size = UDim2.new(1, -20, 0, 2)
 titleDivider.Position = UDim2.new(0, 10, 0, 48)
-titleDivider.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
+titleDivider.BackgroundColor3 = Color3.fromRGB(0, 150, 255) -- 更亮的蓝
 titleDivider.BorderSizePixel = 0
 titleDivider.Parent = topBar
 
@@ -109,8 +110,8 @@ resizeButton.Name = "ResizeUI"
 resizeButton.Text = "调节UI"
 resizeButton.TextSize = 14
 resizeButton.Font = Enum.Font.GothamBold
-resizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-resizeButton.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
+resizeButton.TextColor3 = Color3.fromRGB(255, 255, 255) -- 纯白
+resizeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255) -- 更亮的蓝
 resizeButton.BorderSizePixel = 0
 resizeButton.AutoButtonColor = false
 resizeButton.Size = UDim2.new(0, 70, 0, 32)
@@ -121,12 +122,12 @@ local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 6)
 buttonCorner.Parent = resizeButton
 
--- ========== 左侧新功能区（下移避开标题） ==========
+-- ========== 左侧新功能区 ==========
 local leftPanel = Instance.new("Frame")
 leftPanel.Name = "LeftPanel"
 leftPanel.BackgroundTransparency = 1
-leftPanel.Size = UDim2.new(0, 100, 1, -50) -- 高度减去 50
-leftPanel.Position = UDim2.new(0, 0, 0, 50) -- 从顶部 50 像素处开始
+leftPanel.Size = UDim2.new(0, 100, 1, -50)
+leftPanel.Position = UDim2.new(0, 0, 0, 50)
 leftPanel.Parent = main
 
 -- 左侧功能区右侧的贯穿蓝线（分割线）
@@ -134,7 +135,7 @@ local blueLine = Instance.new("Frame")
 blueLine.Name = "BlueDividerLine"
 blueLine.Size = UDim2.new(0, 2, 1, 0)
 blueLine.Position = UDim2.new(1, -2, 0, 0)
-blueLine.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
+blueLine.BackgroundColor3 = Color3.fromRGB(0, 170, 255) -- 亮青色
 blueLine.BorderSizePixel = 0
 blueLine.Parent = leftPanel
 
@@ -149,10 +150,10 @@ listLayout.Parent = leftPanel
 local espButton = Instance.new("TextButton")
 espButton.Name = "ESPButton"
 espButton.Text = "ESP"
-espButton.TextSize = 14
+espButton.TextSize = 15
 espButton.Font = Enum.Font.GothamBold
-espButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-espButton.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+espButton.TextColor3 = Color3.fromRGB(200, 200, 210)
+espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 espButton.BorderSizePixel = 0
 espButton.Size = UDim2.new(0, 80, 0, 36)
 espButton.Parent = leftPanel
@@ -161,12 +162,12 @@ local espBtnCorner = Instance.new("UICorner")
 espBtnCorner.CornerRadius = UDim.new(0, 6)
 espBtnCorner.Parent = espButton
 
--- ========== 右侧内容区域（下移避开标题） ==========
+-- ========== 右侧内容区域 ==========
 local content = Instance.new("Frame")
 content.Name = "Content"
 content.BackgroundTransparency = 1
-content.Position = UDim2.new(0, 110, 0, 110) -- 之前是 60，现在下移 50
-content.Size = UDim2.new(1, -120, 1, -120) -- 高度减去 120
+content.Position = UDim2.new(0, 110, 0, 110)
+content.Size = UDim2.new(1, -120, 1, -120)
 content.Parent = main
 
 -- 默认页面
@@ -180,11 +181,13 @@ local title = Instance.new("TextLabel")
 title.Name = "Title"
 title.BackgroundTransparency = 1
 title.Text = "窗口内容"
-title.TextColor3 = Color3.fromRGB(240, 240, 240)
-title.TextSize = 24
+title.TextColor3 = Color3.fromRGB(255, 255, 255) -- 纯白
+title.TextSize = 28 -- 字号加大
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Left
-title.Size = UDim2.new(1, 0, 0, 36)
+title.TextStrokeTransparency = 0.5
+title.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- 加描边
+title.Size = UDim2.new(1, 0, 0, 40)
 title.Parent = defaultPage
 
 -- ========== ESP 页面 ==========
@@ -198,10 +201,12 @@ espPage.Parent = content
 local espTitle = Instance.new("TextLabel")
 espTitle.Text = "ESP 功能"
 espTitle.BackgroundTransparency = 1
-espTitle.TextColor3 = Color3.fromRGB(240, 240, 240)
-espTitle.TextSize = 22
+espTitle.TextColor3 = Color3.fromRGB(255, 255, 255) -- 纯白
+espTitle.TextSize = 24 -- 字号加大
 espTitle.Font = Enum.Font.GothamBold
 espTitle.TextXAlignment = Enum.TextXAlignment.Left
+espTitle.TextStrokeTransparency = 0.5
+espTitle.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
 espTitle.Size = UDim2.new(1, 0, 0, 36)
 espTitle.Parent = espPage
 
@@ -228,11 +233,11 @@ local function createToggleButton(parent, text, key)
     btn.Name = key .. "Toggle"
     btn.Text = text .. "：关"
     btn.TextSize = 16
-    btn.Font = Enum.Font.Gotham
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255) -- 文字纯白
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) -- 深灰底色
     btn.BorderSizePixel = 0
-    btn.Size = UDim2.new(0, 200, 0, 36)
+    btn.Size = UDim2.new(0, 200, 0, 38)
     btn.Parent = parent
 
     local corner = Instance.new("UICorner")
@@ -243,10 +248,10 @@ local function createToggleButton(parent, text, key)
         espState[key] = not espState[key]
         if espState[key] then
             btn.Text = text .. "：开"
-            btn.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
+            btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255) -- 开启时亮蓝
         else
             btn.Text = text .. "：关"
-            btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50) -- 关闭时深灰
         end
     end)
 end
@@ -261,11 +266,11 @@ espButton.MouseButton1Click:Connect(function()
     espPage.Visible = not espPage.Visible
     
     if espPage.Visible then
-        espButton.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
+        espButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
         espButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     else
-        espButton.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-        espButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+        espButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        espButton.TextColor3 = Color3.fromRGB(200, 200, 210)
     end
 end)
 
@@ -310,7 +315,7 @@ RunService.RenderStepped:Connect(function()
                     if not data.Highlight or not data.Highlight.Parent then
                         local hl = Instance.new("Highlight")
                         hl.Name = "ESP_Highlight"
-                        hl.FillColor = Color3.fromRGB(60, 120, 220)
+                        hl.FillColor = Color3.fromRGB(0, 150, 255)
                         hl.OutlineColor = Color3.fromRGB(255, 255, 255)
                         hl.FillTransparency = 0.5
                         hl.OutlineTransparency = 0
@@ -341,7 +346,7 @@ RunService.RenderStepped:Connect(function()
                         textLabel.BackgroundTransparency = 1
                         textLabel.Size = UDim2.new(1, 0, 1, 0)
                         textLabel.Font = Enum.Font.GothamBold
-                        textLabel.TextSize = 14
+                        textLabel.TextSize = 16 -- 名字字号加大
                         textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                         textLabel.TextStrokeTransparency = 0
                         textLabel.Text = targetPlayer.Name
@@ -370,9 +375,9 @@ RunService.RenderStepped:Connect(function()
                             local line = Instance.new("LineHandleAdornment")
                             line.Name = "ESP_Line"
                             line.Adornee = root
-                            line.Thickness = 1.5
-                            line.Color3 = Color3.fromRGB(60, 120, 220)
-                            line.Transparency = 0.5
+                            line.Thickness = 2 -- 线条加粗
+                            line.Color3 = Color3.fromRGB(0, 150, 255)
+                            line.Transparency = 0.4
                             line.ZIndex = 1
                             line.Parent = root
                             data.Line = line
@@ -388,9 +393,9 @@ RunService.RenderStepped:Connect(function()
                             local distLabel = Instance.new("TextLabel")
                             distLabel.BackgroundTransparency = 1
                             distLabel.Size = UDim2.new(1, 0, 1, 0)
-                            distLabel.Font = Enum.Font.Gotham
-                            distLabel.TextSize = 12
-                            distLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
+                            distLabel.Font = Enum.Font.GothamBold
+                            distLabel.TextSize = 14
+                            distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
                             distLabel.TextStrokeTransparency = 0
                             distLabel.Text = string.format("%d m", distance)
                             distLabel.Parent = distBb
@@ -444,14 +449,14 @@ local function startResize(input)
         startWidth = main.AbsoluteSize.X
         startHeight = main.AbsoluteSize.Y
         
-        resizeButton.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
+        resizeButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
     end
 end
 
 local function stopResize()
     if resizing then
         resizing = false
-        resizeButton.BackgroundColor3 = Color3.fromRGB(60, 120, 220)
+        resizeButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
     end
 end
 
@@ -496,7 +501,7 @@ notification.Name = "Notification"
 notification.AnchorPoint = Vector2.new(1, 1)
 notification.Position = UDim2.new(1, -20, 1, -20)
 notification.Size = UDim2.new(0, 260, 0, 80)
-notification.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+notification.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 notification.BackgroundTransparency = 0.1
 notification.BorderSizePixel = 0
 notification.Parent = screenGui
@@ -506,7 +511,7 @@ notifyCorner.CornerRadius = UDim.new(0, 8)
 notifyCorner.Parent = notification
 
 local notifyStroke = Instance.new("UIStroke")
-notifyStroke.Color = Color3.fromRGB(80, 80, 95)
+notifyStroke.Color = Color3.fromRGB(100, 100, 120)
 notifyStroke.Thickness = 1
 notifyStroke.Parent = notification
 
@@ -519,18 +524,20 @@ notifyTitle.BackgroundTransparency = 1
 notifyTitle.Size = UDim2.new(1, -20, 0, 24)
 notifyTitle.Position = UDim2.new(0, 10, 0, 10)
 notifyTitle.TextXAlignment = Enum.TextXAlignment.Left
+notifyTitle.TextStrokeTransparency = 0.5
 notifyTitle.Parent = notification
 
 local notifyText = Instance.new("TextLabel")
-notifyText.Font = Enum.Font.Gotham
+notifyText.Font = Enum.Font.GothamBold
 notifyText.TextSize = 14
-notifyText.TextColor3 = Color3.fromRGB(200, 200, 210)
+notifyText.TextColor3 = Color3.fromRGB(220, 220, 230)
 notifyText.BackgroundTransparency = 1
 notifyText.Size = UDim2.new(1, -20, 0, 36)
 notifyText.Position = UDim2.new(0, 10, 0, 34)
 notifyText.TextXAlignment = Enum.TextXAlignment.Left
 notifyText.TextYAlignment = Enum.TextYAlignment.Top
 notifyText.TextWrapped = true
+notifyText.TextStrokeTransparency = 0.5
 notifyText.Text = string.format("设备：%s\n窗口大小：%d x %d", deviceText, absSize.X, absSize.Y)
 notifyText.Parent = notification
 
