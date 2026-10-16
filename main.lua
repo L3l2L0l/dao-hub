@@ -15,7 +15,6 @@ local old = playerGui:FindFirstChild("ResizableUISystem")
 if old then
     old:Destroy()
 end
--- 如果之前挂载到了 CoreGui，也要清理
 if gethui then
     local oldHui = gethui():FindFirstChild("ResizableUISystem")
     if oldHui then oldHui:Destroy() end
@@ -37,15 +36,14 @@ end
 -- ========== 快捷键状态 ==========
 local currentToggleKey = Enum.KeyCode.G
 
--- ========== 创建 ScreenGui（高优先级，穿透 CoreGui） ==========
+-- ========== 创建 ScreenGui ==========
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ResizableUISystem"
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.DisplayOrder = 2147483647 -- 最大优先级，尽量盖过其他 UI
+screenGui.DisplayOrder = 2147483647 
 
--- 核心：如果有 gethui（执行器专属函数），将其挂载到 CoreGui 层级，这样可以盖过 Esc 菜单
 local parentGui = (gethui and gethui()) or playerGui
 screenGui.Parent = parentGui
 
@@ -57,7 +55,7 @@ main.Position = UDim2.fromScale(0.5, 0.5)
 main.Size = UDim2.fromScale(0.5, 0.5)
 main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 main.BorderSizePixel = 0
-main.Active = true -- 核心：允许 UI 捕获鼠标输入，解除游戏强制鼠标居中
+main.Active = true
 main.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
@@ -69,7 +67,6 @@ mainStroke.Color = Color3.fromRGB(100, 100, 120)
 mainStroke.Thickness = 1.5
 mainStroke.Parent = main
 
--- 当鼠标移入 UI 时，强制解除游戏锁定（应对强制索敌居中）
 main.MouseEnter:Connect(function()
     if UserInputService.MouseBehavior == Enum.MouseBehavior.LockCenter then
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -407,7 +404,7 @@ minimizedUi.Size = UDim2.new(0, 120, 0, 40)
 minimizedUi.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 minimizedUi.BorderSizePixel = 0
 minimizedUi.Visible = false
-minimizedUi.Active = true -- 同样允许接收点击
+minimizedUi.Active = true
 minimizedUi.Parent = screenGui
 
 local minimizedCorner = Instance.new("UICorner")
@@ -491,7 +488,7 @@ local function cleanupESP()
     espCache = {}
 end
 
--- ========== 核心交互 ESP 逻辑 ==========
+-- ========== 核心交互 ESP 逻辑（修正版，防止高亮整个地图） ==========
 local interactCache = {}
 
 local function cleanupInteractESP()
@@ -502,7 +499,6 @@ local function cleanupInteractESP()
     interactCache = {}
 end
 
--- 后台扫描线程，不再阻塞主渲染帧
 task.spawn(function()
     while true do
         task.wait(1.5)
@@ -511,36 +507,40 @@ task.spawn(function()
             if next(interactCache) then cleanupInteractESP() end
         else
             for _, obj in ipairs(workspace:GetDescendants()) do
-                local target = nil
-                
-                if obj:IsA("ProximityPrompt") or obj:IsA("ClickDetector") then
-                    local part = obj:FindFirstAncestorWhichIsA("BasePart")
-                    if part then
-                        local model = part:FindFirstAncestorWhichIsA("Model")
-                        target = model or part
-                    end
-                elseif obj:IsA("Seat") or obj:IsA("VehicleSeat") then
-                    target = obj
-                end
-                
-                if target and not interactCache[target] then
-                    local hl = Instance.new("Highlight")
-                    hl.Name = "Interact_Highlight"
-                    hl.FillColor = Color3.fromRGB(0, 255, 100)
-                    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                    hl.FillTransparency = 0.4
-                    hl.OutlineTransparency = 0
-                    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    hl.Parent = target
+                -- 严格只找按 E 交互的 ProximityPrompt
+                if obj:IsA("ProximityPrompt") then
+                    local targetPart = nil
                     
-                    local bb = Instance.new("BillboardGui")
-                    bb.Name = "Interact_Label"
-                    bb.Adornee = target:IsA("Model") and (target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")) or target
-                    if bb.Adornee then
+                    -- 精准寻找 Prompt 所依附的部件
+                    if obj.Parent:IsA("BasePart") then
+                        targetPart = obj.Parent
+                    elseif obj.Parent:IsA("Attachment") and obj.Parent.Parent:IsA("BasePart") then
+                        targetPart = obj.Parent.Parent
+                    end
+                    
+                    if targetPart and not interactCache[targetPart] then
+                        -- 关键修复：只高亮合理大小的部件，避免墙体/地板导致全屏变绿
+                        -- 如果部件尺寸过大（例如 magnitude > 30），就只放标签不喷漆
+                        local hl = nil
+                        if targetPart.Size.Magnitude <= 30 then
+                            hl = Instance.new("Highlight")
+                            hl.Name = "Interact_Highlight"
+                            hl.FillColor = Color3.fromRGB(0, 255, 100)
+                            hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            hl.FillTransparency = 0.4
+                            hl.OutlineTransparency = 0
+                            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                            hl.Parent = targetPart
+                        end
+                        
+                        -- 添加悬浮提示文字
+                        local bb = Instance.new("BillboardGui")
+                        bb.Name = "Interact_Label"
+                        bb.Adornee = targetPart
                         bb.Size = UDim2.new(0, 120, 0, 30)
-                        bb.StudsOffset = Vector3.new(0, 4, 0)
+                        bb.StudsOffset = Vector3.new(0, 3.5, 0)
                         bb.AlwaysOnTop = true
-                        bb.Parent = target
+                        bb.Parent = targetPart
                         
                         local text = Instance.new("TextLabel")
                         text.Text = "[可交互]"
@@ -552,13 +552,12 @@ task.spawn(function()
                         text.TextStrokeTransparency = 0
                         text.Parent = bb
                         
-                        interactCache[target] = {Highlight = hl, Label = bb}
-                    else
-                        interactCache[target] = {Highlight = hl}
+                        interactCache[targetPart] = {Highlight = hl, Label = bb}
                     end
                 end
             end
             
+            -- 清理已经被销毁的目标
             for target, data in pairs(interactCache) do
                 if not target.Parent then
                     if data.Highlight then data.Highlight:Destroy() end
