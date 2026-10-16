@@ -204,7 +204,7 @@ espPage.Parent = content
 local espTitle = Instance.new("TextLabel")
 espTitle.Text = "玩家 ESP"
 espTitle.BackgroundTransparency = 1
-espTitle.TextColor3 = Color3.fromRGB(0, 150, 255) -- 蓝色区分
+espTitle.TextColor3 = Color3.fromRGB(0, 150, 255)
 espTitle.TextSize = 22
 espTitle.Font = Enum.Font.GothamBold
 espTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -227,7 +227,7 @@ espLayout.Parent = espList
 local interactTitle = Instance.new("TextLabel")
 interactTitle.Text = "交互 ESP"
 interactTitle.BackgroundTransparency = 1
-interactTitle.TextColor3 = Color3.fromRGB(0, 255, 100) -- 绿色区分
+interactTitle.TextColor3 = Color3.fromRGB(0, 255, 100)
 interactTitle.TextSize = 22
 interactTitle.Font = Enum.Font.GothamBold
 interactTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -252,7 +252,7 @@ local espState = {
     Highlight = false, 
     Name = false, 
     Line = false,
-    Interact = false -- 新增交互 ESP 状态
+    Interact = false
 }
 
 -- 通用创建开关按钮函数
@@ -290,7 +290,7 @@ createToggleButton(espList, "显示玩家用户名", "Name", Color3.fromRGB(0, 1
 createToggleButton(espList, "显示距离射线", "Line", Color3.fromRGB(0, 120, 255))
 
 -- 创建交互 ESP 按钮
-createToggleButton(interactList, "高亮可交互目标", "Interact", Color3.fromRGB(0, 200, 80)) -- 绿色主题
+createToggleButton(interactList, "高亮可交互目标", "Interact", Color3.fromRGB(0, 200, 80))
 
 -- ========== 设置页面 ==========
 local settingPage = Instance.new("Frame")
@@ -477,8 +477,9 @@ local interactCache = {}
 local lastInteractScan = 0
 
 local function cleanupInteractESP()
-    for obj, hl in pairs(interactCache) do
-        if hl then hl:Destroy() end
+    for _, data in pairs(interactCache) do
+        if data.Highlight then data.Highlight:Destroy() end
+        if data.Label then data.Label:Destroy() end
     end
     interactCache = {}
 end
@@ -615,8 +616,8 @@ RunService.RenderStepped:Connect(function()
     if not espState.Interact then
         cleanupInteractESP()
     else
-        -- 每 2 秒扫描一次工作区，避免每帧遍历带来的卡顿
-        if tick() - lastInteractScan > 2 then
+        -- 每 1.5 秒扫描一次，提升响应速度
+        if tick() - lastInteractScan > 1.5 then
             lastInteractScan = tick()
             
             for _, obj in ipairs(workspace:GetDescendants()) do
@@ -625,29 +626,60 @@ RunService.RenderStepped:Connect(function()
                 if obj:IsA("ClickDetector") then
                     target = obj.Parent
                 elseif obj:IsA("ProximityPrompt") then
-                    target = obj.Parent
+                    -- 专门针对按 E 交互的 ProximityPrompt 进行精准检测
+                    local parent = obj.Parent
+                    if parent:IsA("Attachment") then
+                        target = parent.Parent -- Attachment 的父级通常是 BasePart
+                    elseif parent:IsA("BasePart") or parent:IsA("Model") then
+                        target = parent
+                    end
                 elseif obj:IsA("Seat") or obj:IsA("VehicleSeat") then
                     target = obj
                 end
                 
-                if target and not interactCache[target] then
-                    -- 如果父级是模型，高亮整个模型，否则高亮部件
+                -- 如果是有效的 BasePart 或 Model，且未在缓存中
+                if target and (target:IsA("BasePart") or target:IsA("Model")) and not interactCache[target] then
                     local hl = Instance.new("Highlight")
                     hl.Name = "Interact_Highlight"
-                    hl.FillColor = Color3.fromRGB(0, 255, 100) -- 绿色，与玩家 ESP 区分
+                    hl.FillColor = Color3.fromRGB(0, 255, 100) -- 绿色高亮
                     hl.OutlineColor = Color3.fromRGB(255, 255, 255)
                     hl.FillTransparency = 0.5
                     hl.OutlineTransparency = 0
                     hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
                     hl.Parent = target
-                    interactCache[target] = hl
+                    
+                    -- 添加悬浮提示文字，让“按E”的交互更显眼
+                    local bb = Instance.new("BillboardGui")
+                    bb.Name = "Interact_Label"
+                    bb.Adornee = target:IsA("Model") and (target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")) or target
+                    if bb.Adornee then
+                        bb.Size = UDim2.new(0, 100, 0, 30)
+                        bb.StudsOffset = Vector3.new(0, 3, 0)
+                        bb.AlwaysOnTop = true
+                        bb.Parent = target
+                        
+                        local text = Instance.new("TextLabel")
+                        text.Text = "[可交互]"
+                        text.BackgroundTransparency = 1
+                        text.Size = UDim2.new(1, 0, 1, 0)
+                        text.Font = Enum.Font.GothamBold
+                        text.TextSize = 14
+                        text.TextColor3 = Color3.fromRGB(0, 255, 100)
+                        text.TextStrokeTransparency = 0
+                        text.Parent = bb
+                        
+                        interactCache[target] = {Highlight = hl, Label = bb}
+                    else
+                        interactCache[target] = {Highlight = hl}
+                    end
                 end
             end
             
             -- 清理已经被销毁的目标
-            for target, hl in pairs(interactCache) do
+            for target, data in pairs(interactCache) do
                 if not target.Parent then
-                    hl:Destroy()
+                    if data.Highlight then data.Highlight:Destroy() end
+                    if data.Label then data.Label:Destroy() end
                     interactCache[target] = nil
                 end
             end
