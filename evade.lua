@@ -4,8 +4,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local VirtualUser = game:GetService("VirtualUser")
 local player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+
+-- 防挂机踢出
+player.Idled:Connect(function()
+    pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end)
 
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Yisan886/Aero/refs/heads/main/ui.lua.txt"))()
 
@@ -24,7 +33,7 @@ local Window = WindUI:CreateWindow({
     Title = "Aero      ",
     Folder = "Aero",
     SideBarWidth = 180,
-    Background = "https://chaton-images.s3.us-east-2.amazonaws.com/alHcHts2JjSlmMRKjQeDXFipKS5LjNhrKrkN8TxbH7HgPmXA1QbuEYZh3Hwnb9F5_1536x1024x1945789.png", -- 背景视频
+    Background = "https://chaton-images.s3.us-east-2.amazonaws.com/alHcHts2JjSlmMRKjQeDXFipKS5LjNhrKrkN8TxbH7HgPmXA1QbuEYZh3Hwnb9F5_1536x1024x1945789.png",
     BackgroundImageTransparency = 0.35,
     OpenButton = {
         Title = "打开脚本",
@@ -46,7 +55,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:Tag({
-    Title = "V1.04",
+    Title = "V1.08",
     Color = Color3.fromHex("00CED1"),
     Radius = 2,
 })
@@ -62,22 +71,10 @@ Window:Tag({
 local COLOR_SCHEMES = {
     ["Fallen Purple"] = {
         ColorSequence.new({
-            ColorSequenceKeypoint.new(
-                0,
-                Color3.fromHex("2E1065")
-            ),
-            ColorSequenceKeypoint.new(
-                0.3,
-                Color3.fromHex("4C1D95")
-            ),
-            ColorSequenceKeypoint.new(
-                0.6,
-                Color3.fromHex("7C3AED")
-            ),
-            ColorSequenceKeypoint.new(
-                1,
-                Color3.fromHex("C084FC")
-            )
+            ColorSequenceKeypoint.new(0, Color3.fromHex("2E1065")),
+            ColorSequenceKeypoint.new(0.3, Color3.fromHex("4C1D95")),
+            ColorSequenceKeypoint.new(0.6, Color3.fromHex("7C3AED")),
+            ColorSequenceKeypoint.new(1, Color3.fromHex("C084FC"))
         }),
         "waves"
     }
@@ -628,22 +625,158 @@ player.CharacterAdded:Connect(function(char)
     end
 end)
 
+-- ==================== 自动收集（Tora 路径 workspace.Effects.Tickets） ====================
+local toraCollectEnabled = false
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if not toraCollectEnabled then continue end
+        pcall(function()
+            local char = player.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+
+            local effects = workspace:FindFirstChild("Effects")
+            local tickets = effects and effects:FindFirstChild("Tickets")
+            if not tickets then return end
+
+            for _, ticket in ipairs(tickets:GetChildren()) do
+                if not toraCollectEnabled then break end
+                local tr = ticket:FindFirstChild("HumanoidRootPart")
+                if tr then
+                    root.CFrame = CFrame.new(tr.Position)
+                end
+            end
+        end)
+    end
+end)
+-- ==================== 自动收集 结束 ====================
+
+-- ==================== 自动躲避 Nextbot（来自 Tora 脚本逻辑） ====================
+local avoidEnabled = false
+local avoidDistance = 30
+
+task.spawn(function()
+    while true do
+        task.wait()
+        if not avoidEnabled then continue end
+        pcall(function()
+            local char = player.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if not root then return end
+
+            -- 找最近的 AI 怪物
+            local nearest, nearestDist = nil, avoidDistance
+            local playersContainer = workspace:FindFirstChild("Players")
+            if playersContainer then
+                for _, child in ipairs(playersContainer:GetChildren()) do
+                    if child:GetAttribute("AI") == true then
+                        local cr = child:FindFirstChild("HumanoidRootPart")
+                        if cr then
+                            local d = (root.Position - cr.Position).Magnitude
+                            if d < nearestDist then
+                                nearest, nearestDist = child, d
+                            end
+                        end
+                    end
+                end
+            end
+
+            -- 有威胁就传送到随机 ItemSpawn
+            if nearest then
+                local map = workspace:FindFirstChild("Map")
+                local itemSpawns = map and map:FindFirstChild("ItemSpawns")
+                if itemSpawns then
+                    local list = {}
+                    for _, s in ipairs(itemSpawns:GetChildren()) do
+                        if s.Name == "ItemSpawn" then
+                            table.insert(list, s)
+                        end
+                    end
+                    if #list > 0 then
+                        local target = list[math.random(1, #list)]
+                        root.CFrame = target.CFrame
+                    end
+                end
+            end
+        end)
+    end
+end)
+-- ==================== 自动躲避 Nextbot 结束 ====================
+
+-- ==================== 自动装备灯笼 ====================
+local autoEquipLantern = false
+
+local function equipLantern()
+    local char = player.Character
+    if not char then return end
+    
+    local hand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+    if not hand then return end
+    
+    local old = char:FindFirstChild("LocalLantern")
+    if old then old:Destroy() end
+    
+    local items = ReplicatedStorage:FindFirstChild("Items")
+    local baseItems = items and items:FindFirstChild("BaseItems")
+    local loadout = baseItems and baseItems:FindFirstChild("Loadout")
+    local lights = loadout and loadout:FindFirstChild("Lights")
+    local lantern = lights and lights:FindFirstChild("Lantern")
+    
+    if not lantern then return end
+    
+    local cloned = lantern:Clone()
+    cloned.Name = "LocalLantern"
+    
+    local grip = cloned:FindFirstChild("Grip") or (cloned:FindFirstChild("Visual") and cloned.Visual:FindFirstChild("Grip"))
+    if not grip then
+        grip = cloned:FindFirstChildWhichIsA("BasePart")
+    end
+    if not grip then return end
+    
+    cloned.PrimaryPart = grip
+    
+    for _, part in ipairs(cloned:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Anchored = false
+            part.CanCollide = false
+            part.Massless = true
+        end
+    end
+    
+    -- 将模型移到手的位置，并稍微向下偏移，避免穿模
+    cloned:PivotTo(hand.CFrame * CFrame.new(0, -0.5, 0))
+    
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = hand
+    weld.Part1 = grip
+    weld.Parent = grip
+    
+    cloned.Parent = char
+end
+
+player.CharacterAdded:Connect(function(char)
+    task.wait(2)
+    if autoEquipLantern then
+        equipLantern()
+    end
+end)
+-- ==================== 自动装备灯笼 结束 ====================
+
 local rescueEnabled = false
 local rescueCurrentTarget = nil
 local rescueSelfDowned = false
 local rescueVelocity = nil
 local rescueKeyHeld = false
 
--- 倒地后等待多久再飞过去救（秒）
 local rescueWaitSeconds = 7
--- 记录每个倒地玩家首次被发现的时间：{ [model] = tick() }
 local rescueDownedSince = {}
 
--- 秒救配置
-local instantRescue = false          -- 秒救开关
-local instantRescueBurst = 40        -- 抵达瞬间爆发的 E 键次数
-local instantBurstRemaining = 0      -- 剩余爆发次数
-local lastBurstTarget = nil          -- 上次爆发所针对的目标（避免重复爆发）
+local instantRescue = false
+local instantRescueBurst = 40
+local instantBurstRemaining = 0
+local lastBurstTarget = nil
 
 local rescueCFG = {
     HoverHeight = 3,
@@ -757,7 +890,6 @@ task.spawn(function()
             continue
         end
 
-        -- 清理已不再倒地或已不存在的记录，防止表无限增长
         for m in pairs(rescueDownedSince) do
             if not isPlayerDowned(m) then
                 rescueDownedSince[m] = nil
@@ -805,8 +937,6 @@ task.spawn(function()
             continue
         end
 
-        -- 倒地等待：发现有人倒地后先原地等 rescueWaitSeconds 秒，
-        -- 避免怪物还在倒地玩家附近时飞过去被怪物锁定
         local since = rescueDownedSince[rescueCurrentTarget]
         if not since then
             rescueDownedSince[rescueCurrentTarget] = tick()
@@ -840,7 +970,6 @@ task.spawn(function()
 
         if dist < rescueCFG.HoldDistance then
             if rescueCFG.PressE then rescueHoldKey() end
-            -- 秒救：抵达 HoldDistance 内的瞬间触发一次爆发
             if instantRescue and lastBurstTarget ~= rescueCurrentTarget then
                 lastBurstTarget = rescueCurrentTarget
                 instantBurstRemaining = instantRescueBurst
@@ -859,7 +988,6 @@ task.spawn(function()
             continue
         end
 
-        -- 秒救爆发：一次性把剩余次数在极短时间连发出去
         if instantRescue and instantBurstRemaining > 0 then
             local n = math.min(instantBurstRemaining, 8)
             for _ = 1, n do
@@ -1167,7 +1295,6 @@ rescueSection:Toggle({
     Value = false,
     Callback = function(state)
         instantRescue = state
-        -- 秒救时缩短到达距离、加快脉冲频率
         rescueCFG.ArriveDist = state and 2 or 3
         rescueCFG.PressInterval = state and 0.001 or 0.01
         if not state then
@@ -1194,12 +1321,65 @@ local farmSection = Tab:Section({
     IconName = "home"
 })
 
+local toraCollectToggle
+local platformToggle
+
+toraCollectToggle = farmSection:Toggle({
+    Title = "自动收集（Tora 路径）",
+    Desc = "瞬移到 workspace.Effects.Tickets 内所有物品上收集",
+    Value = false,
+    Callback = function(state)
+        toraCollectEnabled = state
+        if state then
+            if platformEnabled and platformToggle then
+                pcall(function() platformToggle:Set(false) end)
+            end
+            WindUI:Notify({
+                Title = "自动收集",
+                Content = "已开启（workspace.Effects.Tickets）",
+                Duration = 2
+            })
+        end
+    end
+})
+
 farmSection:Toggle({
+    Title = "自动躲避 Nextbot",
+    Desc = "检测范围内 AI 怪物，靠近时随机传送到 ItemSpawn",
+    Value = false,
+    Callback = function(state)
+        avoidEnabled = state
+        if state then
+            WindUI:Notify({
+                Title = "自动躲避",
+                Content = "已开启：靠近怪物自动跳到刷新点",
+                Duration = 2
+            })
+        end
+    end
+})
+
+farmSection:Slider({
+    Title = "躲避检测距离",
+    Value = {
+        Min = 10,
+        Max = 100,
+        Default = 30,
+    },
+    Callback = function(value)
+        avoidDistance = value
+    end
+})
+
+platformToggle = farmSection:Toggle({
     Title = "高空平台",
     Value = false,
     Callback = function(state)
         platformEnabled = state
         if state then
+            if toraCollectEnabled and toraCollectToggle then
+                pcall(function() toraCollectToggle:Set(false) end)
+            end
             rescanCenter()
         else
             destroyPlatform()
@@ -1226,6 +1406,34 @@ farmSection:Button({
     Title = "传送至平台",
     Callback = function()
         teleportToPlatform()
+    end
+})
+
+local utilSection = Tab:Section({
+    Title = "实用",
+    IconName = "wrench"
+})
+
+utilSection:Toggle({
+    Title = "自动装备灯笼",
+    Desc = "重生时自动在右手挂载灯笼模型",
+    Value = false,
+    Callback = function(state)
+        autoEquipLantern = state
+        if state then
+            equipLantern()
+        else
+            local char = player.Character
+            local old = char and char:FindFirstChild("LocalLantern")
+            if old then old:Destroy() end
+        end
+    end
+})
+
+utilSection:Button({
+    Title = "手动重装灯笼",
+    Callback = function()
+        equipLantern()
     end
 })
 
@@ -1320,12 +1528,6 @@ musicSection:Button({
 })
 
 -- ==================== UI 优先级提升（增强版） ====================
--- 目标：让 WindUI 的所有 ScreenGui 渲染在 Roblox ESC 菜单（CoreGui.RobloxGui）之上
--- 原理：
---   1. 用执行器特权 gethui()/get_hidden_gui() 拿到隐藏容器（其渲染层高于 RobloxGui）
---   2. syn.protect_gui / protect_gui 防止 GUI 被 Roblox 自动清理
---   3. DisplayOrder = 2147483647 + IgnoreGuiInset = true + ResetOnSpawn = false
---   4. 用 Heartbeat 每秒自检，防止 DisplayOrder/Parent 被系统重置
 do
     local CoreGui   = game:GetService("CoreGui")
     local PlayerGui = player:FindFirstChildOfClass("PlayerGui")
