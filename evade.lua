@@ -392,11 +392,14 @@ local fired = false
 local retryCount = 0
 local lastFireTime = 0
 
+-- 修正：SetPlayerMode 接收的是布尔值（true = 进局排队 / false = 回菜单）
 local function enterRound()
     pcall(function()
-        local UI = ReplicatedStorage.Services.UI
-        local ev = ReplicatedStorage.Events.SetPlayerMode
-        ev:FireServer(UI.GameUIService)
+        local events = ReplicatedStorage:FindFirstChild("Events")
+        local ev = events and (events:FindFirstChild("SetPlayerMode") or events:WaitForChild("SetPlayerMode", 5))
+        if ev then
+            ev:FireServer(true)
+        end
     end)
 end
 
@@ -705,61 +708,243 @@ task.spawn(function()
 end)
 -- ==================== 自动躲避 Nextbot 结束 ====================
 
--- ==================== 自动装备灯笼 ====================
+-- ==================== 自动装备灯笼（真实装备） ====================
+-- 灯笼 = ReplicatedStorage.Tools.Lantern（游戏通用工具系统里的一件工具，没有专用的"装备灯笼"事件）
+-- 真实装备 = 让本地角色的 ToolProfile 切到这个工具，最终状态落在 DataRegistry 的
+-- "Equipped"（工具序号，客户端可发送）并同步给服务端
 local autoEquipLantern = false
+local lanternInterval = 1      -- 检测间隔(秒)，越小越"粘手"
+local lanternCosmetic = true   -- 装备栏里没有灯笼时，用本地模型凑合显示
+local lanternLastNotify = 0
+local lanternCosmeticModel = nil
+local LanternState = { CharacterService = nil, Module = nil }
 
-local function equipLantern()
+local function lanternCharService()
+    if LanternState.CharacterService then return LanternState.CharacterService end
+    local ok, mod = pcall(function()
+        return require(ReplicatedStorage:WaitForChild("Services"):WaitForChild("Asset"):WaitForChild("CharacterService"))
+    end)
+    if ok and type(mod) == "table" then
+        LanternState.CharacterService = mod
+        return mod
+    end
+    return nil
+end
+
+local function lanternLocalCharacter()
+    local svc = lanternCharService()
+    if not svc then return nil end
+    local ok, char = pcall(function() return svc:GetLocalCharacter() end)
+    if ok then return char end
+    return nil
+end
+
+local function lanternModule()
+    if LanternState.Module and LanternState.Module.Parent then return LanternState.Module end
+    local tools = ReplicatedStorage:FindFirstChild("Tools")
+    if not tools then return nil end
+    LanternState.Module = tools:FindFirstChild("Lantern")
+    return LanternState.Module
+end
+
+local function findLanternTool(profile)
+    local list = profile and profile.Tools
+    if type(list) ~= "table" then return nil end
+    local target = lanternModule()
+    for idx, tool in ipairs(list) do
+        local mod = tool and tool.Module
+        if mod and mod.Name == "Lantern" then return tool, idx end
+        if target and mod == target then return tool, idx end
+    end
+    return nil
+end
+
+local function lanternCurrentName(profile)
+    local cur
+    pcall(function() cur = profile:GetCurrentTool() end)
+    local mod = cur and cur.Module
+    return mod and mod.Name or nil
+end
+
+local function lanternNotify(content, force)
+    if not force and tick() - lanternLastNotify < 10 then return end
+    lanternLastNotify = tick()
+    pcall(function()
+        WindUI:Notify({ Title = "自动装备灯笼", Content = content, Duration = 3 })
+    end)
+end
+
+-- 键位映射（游戏内 Flashlight 短语 = F，其余工具 = 1-9）
+local LKEY = {
+    Flashlight = Enum.KeyCode.F,
+    ["1"] = Enum.KeyCode.One, ["2"] = Enum.KeyCode.Two, ["3"] = Enum.KeyCode.Three,
+    ["4"] = Enum.KeyCode.Four, ["5"] = Enum.KeyCode.Five, ["6"] = Enum.KeyCode.Six,
+    ["7"] = Enum.KeyCode.Seven, ["8"] = Enum.KeyCode.Eight, ["9"] = Enum.KeyCode.Nine,
+}
+
+local function pressKey(keyCode)
+    if not keyCode then return end
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+        task.wait(0.04)
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end)
+end
+
+local function lanternToolNames(profile)
+    local out = {}
+    for i, t in ipairs((profile and profile.Tools) or {}) do
+        out[#out + 1] = i .. "=" .. tostring(t.Module and t.Module.Name)
+            .. "(" .. tostring(t.Keybind) .. ")"
+    end
+    return table.concat(out, " ")
+end
+
+-- 诊断：把关键状态打到控制台（F9），定位到底卡在哪一步
+local function lanternDiag()
+    local lines = { "===== 灯笼诊断 =====" }
+    local svc = lanternCharService()
+    lines[#lines + 1] = "CharacterService: " .. (svc and "OK" or "不可用（require 被禁？）")
+
+    local char = lanternLocalCharacter()
+    lines[#lines + 1] = "本地角色: " .. (char and tostring(char.Name) or "nil")
+    if char then
+        local profile = char.ToolProfile
+        lines[#lines + 1] = "ToolProfile: " .. (profile and "OK" or "nil")
+        if profile then
+            local tools = profile.Tools or {}
+            lines[#lines + 1] = "Tools(" .. #tools .. "): " .. lanternToolNames(profile)
+            lines[#lines + 1] = "当前工具: " .. tostring(lanternCurrentName(profile))
+            local tool, idx = findLanternTool(profile)
+            if tool then
+                lines[#lines + 1] = "灯笼: 有 / 序号=" .. tostring(idx)
+                    .. " / Keybind=" .. tostring(tool.Keybind)
+            else
+                lines[#lines + 1] = "灯笼: 无（本局装备栏没有 Lantern）"
+            end
+        end
+        pcall(function()
+            lines[#lines + 1] = "注册表 Equipped=" .. tostring(char.DataRegistry:Get("Equipped"))
+                .. " / EquippedName=" .. tostring(char.DataRegistry:Get("EquippedName"))
+                .. " / Tools=" .. tostring(#(char.DataRegistry:Get("Tools") or {}))
+        end)
+    end
+    local text = table.concat(lines, "\n")
+    print(text)
+    return text
+end
+
+-- 返回 "already" | "equipped:<方式>" | "not_in_loadout" | "not_ready" | "no_char" | "no_profile" | "failed"
+local function equipLanternReal(verbose)
+    local char = lanternLocalCharacter()
+    if not char then return "no_char" end
+    local profile = char.ToolProfile
+    if not profile then return "no_profile" end
+
+    local tools = profile.Tools or {}
+    if #tools == 0 then return "not_ready" end
+
+    local tool, index = findLanternTool(profile)
+    if not tool then
+        if verbose then print("[灯笼] 装备栏里没有 Lantern ->", lanternToolNames(profile)) end
+        return "not_in_loadout"
+    end
+
+    if lanternCurrentName(profile) == "Lantern" then return "already" end
+
+    -- 4 条路径依次尝试，每步都验证是否真的切过去了
+    local keybind = tool.Keybind
+    local steps = {
+        { name = "KeyPhraseUsed", run = function() profile:KeyPhraseUsed({ Key = keybind, Down = true }) end },
+        { name = "AttemptEquip", run = function() profile:AttemptEquip(keybind) end },
+        { name = "DataRegistry.Equipped", run = function() char.DataRegistry:Set("Equipped", index) end },
+        { name = "KeyPress", run = function() pressKey(LKEY[tostring(keybind)]) end },
+    }
+
+    for _, step in ipairs(steps) do
+        local ok, err = pcall(step.run)
+        if not ok and verbose then
+            print("[灯笼] " .. step.name .. " 报错:", err)
+        end
+        task.wait(0.25)
+        if lanternCurrentName(profile) == "Lantern" then
+            if verbose then print("[灯笼] 装备成功，方式:", step.name) end
+            return "equipped:" .. step.name
+        end
+    end
+
+    if verbose then
+        print("[灯笼] 4 条路径都没成功")
+        lanternDiag()
+    end
+    return "failed"
+end
+
+-- 兜底：本地视觉模型（只在装备栏里没有灯笼时用，其他人看不到）
+local function removeCosmeticLantern()
+    if lanternCosmeticModel then
+        pcall(function() lanternCosmeticModel:Destroy() end)
+        lanternCosmeticModel = nil
+    end
+end
+
+local function applyCosmeticLantern()
+    if not lanternCosmetic then return end
     local char = player.Character
     if not char then return end
-    
     local hand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
     if not hand then return end
-    
-    local old = char:FindFirstChild("LocalLantern")
-    if old then old:Destroy() end
-    
+    if lanternCosmeticModel and lanternCosmeticModel.Parent then return end
+
+    removeCosmeticLantern()
+
     local items = ReplicatedStorage:FindFirstChild("Items")
     local baseItems = items and items:FindFirstChild("BaseItems")
     local loadout = baseItems and baseItems:FindFirstChild("Loadout")
     local lights = loadout and loadout:FindFirstChild("Lights")
     local lantern = lights and lights:FindFirstChild("Lantern")
-    
     if not lantern then return end
-    
-    local cloned = lantern:Clone()
-    cloned.Name = "LocalLantern"
-    
-    local grip = cloned:FindFirstChild("Grip") or (cloned:FindFirstChild("Visual") and cloned.Visual:FindFirstChild("Grip"))
-    if not grip then
-        grip = cloned:FindFirstChildWhichIsA("BasePart")
-    end
-    if not grip then return end
-    
-    cloned.PrimaryPart = grip
-    
-    for _, part in ipairs(cloned:GetDescendants()) do
+
+    local clone = lantern:Clone()
+    clone.Name = "LocalLantern"
+    local grip = clone:FindFirstChild("Grip")
+        or (clone:FindFirstChild("Visual") and clone.Visual:FindFirstChild("Grip"))
+        or clone:FindFirstChildWhichIsA("BasePart")
+    if not grip then clone:Destroy(); return end
+
+    for _, part in ipairs(clone:GetDescendants()) do
         if part:IsA("BasePart") then
             part.Anchored = false
             part.CanCollide = false
             part.Massless = true
         end
     end
-    
-    -- 将模型移到手的位置，并稍微向下偏移，避免穿模
-    cloned:PivotTo(hand.CFrame * CFrame.new(0, -0.5, 0))
-    
+
+    clone.PrimaryPart = grip
+    clone:PivotTo(hand.CFrame * CFrame.new(0, -0.5, 0))
+    clone.Parent = char
+
     local weld = Instance.new("WeldConstraint")
     weld.Part0 = hand
     weld.Part1 = grip
     weld.Parent = grip
-    
-    cloned.Parent = char
+
+    lanternCosmeticModel = clone
 end
 
-player.CharacterAdded:Connect(function(char)
-    task.wait(2)
-    if autoEquipLantern then
-        equipLantern()
+task.spawn(function()
+    while true do
+        task.wait(lanternInterval)
+        if autoEquipLantern then
+            local ok, res = pcall(equipLanternReal, false)
+            if ok and type(res) == "string" then
+                if res == "not_in_loadout" or res == "failed" then
+                    applyCosmeticLantern()
+                elseif res == "already" or res:sub(1, 9) == "equipped:" then
+                    removeCosmeticLantern()
+                end
+            end
+        end
     end
 end)
 -- ==================== 自动装备灯笼 结束 ====================
@@ -1416,24 +1601,60 @@ local utilSection = Tab:Section({
 
 utilSection:Toggle({
     Title = "自动装备灯笼",
-    Desc = "重生时自动在右手挂载灯笼模型",
+    Desc = "真实装备（ToolProfile + Equipped），需灯笼在装备栏内",
     Value = false,
     Callback = function(state)
         autoEquipLantern = state
         if state then
-            equipLantern()
+            local ok, res = pcall(equipLanternReal, true)
+            if not ok then
+                lanternNotify("调用出错，详见控制台", true)
+            elseif res == "not_in_loadout" then
+                lanternNotify("本局装备栏没有灯笼（菜单里要带 Lantern）", true)
+                applyCosmeticLantern()
+            elseif res == "not_ready" then
+                lanternNotify("工具列表还没同步，稍后自动重试", true)
+            elseif res == "no_char" then
+                lanternNotify("还没进对局，进图后自动装备", true)
+            elseif res == "no_profile" then
+                lanternNotify("角色工具档案未就绪", true)
+            elseif res == "failed" then
+                lanternNotify("自动切换失败，试试手动按 F / 1-9", true)
+            elseif type(res) == "string" and (res == "already" or res:sub(1, 9) == "equipped:") then
+                lanternNotify("已装备灯笼", true)
+            end
         else
-            local char = player.Character
-            local old = char and char:FindFirstChild("LocalLantern")
-            if old then old:Destroy() end
+            removeCosmeticLantern()
         end
     end
 })
 
 utilSection:Button({
-    Title = "手动重装灯笼",
+    Title = "手动装备灯笼",
     Callback = function()
-        equipLantern()
+        local ok, res = pcall(equipLanternReal, true)
+        if not ok then
+            lanternNotify("调用出错，详见控制台", true)
+        elseif res == "not_in_loadout" then
+            lanternNotify("装备栏里没有 Lantern（检查菜单里是否带了灯笼）", true)
+        elseif res == "no_char" or res == "no_profile" then
+            lanternNotify("角色还没加载好", true)
+        elseif res == "not_ready" then
+            lanternNotify("工具列表还没同步", true)
+        elseif res == "failed" then
+            lanternNotify("切换失败，试试手动按 F / 1-9", true)
+        else
+            lanternNotify("已切换到灯笼", true)
+        end
+    end
+})
+
+utilSection:Button({
+    Title = "灯笼诊断（看控制台）",
+    Callback = function()
+        local text = lanternDiag()
+        local short = text:gsub("\n", " | ")
+        lanternNotify(short:sub(1, 110), true)
     end
 })
 
