@@ -19,7 +19,7 @@ end)
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Yisan886/Aero/refs/heads/main/ui.lua.txt"))()
 
 WindUI:AddTheme({
-    Name = "Fallen Aero",
+    Name = "Fallen Purple",
     Accent = Color3.fromHex("#7C3AED"),
     Background = Color3.fromHex("#09090B"),
     Outline = Color3.fromHex("#4C1D95"),
@@ -30,13 +30,13 @@ WindUI:AddTheme({
 })
 
 local Window = WindUI:CreateWindow({
-    Title = "Aero      ",
-    Folder = "Aero",
+    Title = "Dao hub",
+    Folder = "Dao hub",
     SideBarWidth = 180,
     Background = "https://chaton-images.s3.us-east-2.amazonaws.com/alHcHts2JjSlmMRKjQeDXFipKS5LjNhrKrkN8TxbH7HgPmXA1QbuEYZh3Hwnb9F5_1536x1024x1945789.png",
     BackgroundImageTransparency = 0.35,
     OpenButton = {
-        Title = "打开脚本",
+        Title = "Dao hub",
         CornerRadius = UDim.new(1, 0),
         StrokeThickness = 3,
         Enabled = true,
@@ -54,18 +54,7 @@ local Window = WindUI:CreateWindow({
     },
 })
 
-Window:Tag({
-    Title = "V1.09",
-    Color = Color3.fromHex("00CED1"),
-    Radius = 2,
-})
-
-Window:Tag({
-    Title = "Yisan",
-    Icon = "crown",
-    Color = Color3.fromHex("FFD700"),
-    Radius = 2,
-})
+-- 已删除 V1.09 和 Yisan 标签
 
 
 local COLOR_SCHEMES = {
