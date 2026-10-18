@@ -55,7 +55,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:Tag({
-    Title = "V1.08",
+    Title = "V1.09",
     Color = Color3.fromHex("00CED1"),
     Radius = 2,
 })
@@ -386,13 +386,7 @@ end
 player.CharacterAdded:Connect(hookAutoJump)
 if player.Character then hookAutoJump(player.Character) end
 
-local autoRevive = false
-local downedSince = nil
-local fired = false
-local retryCount = 0
-local lastFireTime = 0
-
--- 修正：SetPlayerMode 接收的是布尔值（true = 进局排队 / false = 回菜单）
+-- 基础加入/复活函数
 local function enterRound()
     pcall(function()
         local events = ReplicatedStorage:FindFirstChild("Events")
@@ -402,6 +396,46 @@ local function enterRound()
         end
     end)
 end
+
+-- 自动加入游戏逻辑
+local autoJoinEnabled = false
+local lastJoinAttempt = 0
+
+task.spawn(function()
+    while true do
+        task.wait(2)
+        if not autoJoinEnabled then 
+            lastJoinAttempt = 0
+            continue 
+        end
+        
+        local char = player.Character
+        local inGame = false
+        
+        if char then
+            local container = workspace:FindFirstChild("Players")
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            -- 判断是否真在局内：处于 Players 文件夹中，且活着
+            if container and char.Parent == container and humanoid and humanoid.Health > 0 then
+                inGame = true
+            end
+        end
+        
+        if not inGame then
+            local now = tick()
+            if now - lastJoinAttempt >= 5 then
+                lastJoinAttempt = now
+                enterRound()
+            end
+        end
+    end
+end)
+
+local autoRevive = false
+local downedSince = nil
+local fired = false
+local retryCount = 0
+local lastFireTime = 0
 
 local function isDowned()
     local char = player.Character
@@ -709,12 +743,9 @@ end)
 -- ==================== 自动躲避 Nextbot 结束 ====================
 
 -- ==================== 自动装备灯笼（真实装备） ====================
--- 灯笼 = ReplicatedStorage.Tools.Lantern（游戏通用工具系统里的一件工具，没有专用的"装备灯笼"事件）
--- 真实装备 = 让本地角色的 ToolProfile 切到这个工具，最终状态落在 DataRegistry 的
--- "Equipped"（工具序号，客户端可发送）并同步给服务端
 local autoEquipLantern = false
-local lanternInterval = 1      -- 检测间隔(秒)，越小越"粘手"
-local lanternCosmetic = true   -- 装备栏里没有灯笼时，用本地模型凑合显示
+local lanternInterval = 1
+local lanternCosmetic = true
 local lanternLastNotify = 0
 local lanternCosmeticModel = nil
 local LanternState = { CharacterService = nil, Module = nil }
@@ -774,7 +805,6 @@ local function lanternNotify(content, force)
     end)
 end
 
--- 键位映射（游戏内 Flashlight 短语 = F，其余工具 = 1-9）
 local LKEY = {
     Flashlight = Enum.KeyCode.F,
     ["1"] = Enum.KeyCode.One, ["2"] = Enum.KeyCode.Two, ["3"] = Enum.KeyCode.Three,
@@ -800,7 +830,6 @@ local function lanternToolNames(profile)
     return table.concat(out, " ")
 end
 
--- 诊断：把关键状态打到控制台（F9），定位到底卡在哪一步
 local function lanternDiag()
     local lines = { "===== 灯笼诊断 =====" }
     local svc = lanternCharService()
@@ -834,7 +863,6 @@ local function lanternDiag()
     return text
 end
 
--- 返回 "already" | "equipped:<方式>" | "not_in_loadout" | "not_ready" | "no_char" | "no_profile" | "failed"
 local function equipLanternReal(verbose)
     local char = lanternLocalCharacter()
     if not char then return "no_char" end
@@ -852,7 +880,6 @@ local function equipLanternReal(verbose)
 
     if lanternCurrentName(profile) == "Lantern" then return "already" end
 
-    -- 4 条路径依次尝试，每步都验证是否真的切过去了
     local keybind = tool.Keybind
     local steps = {
         { name = "KeyPhraseUsed", run = function() profile:KeyPhraseUsed({ Key = keybind, Down = true }) end },
@@ -880,7 +907,6 @@ local function equipLanternReal(verbose)
     return "failed"
 end
 
--- 兜底：本地视觉模型（只在装备栏里没有灯笼时用，其他人看不到）
 local function removeCosmeticLantern()
     if lanternCosmeticModel then
         pcall(function() lanternCosmeticModel:Destroy() end)
@@ -1597,6 +1623,18 @@ farmSection:Button({
 local utilSection = Tab:Section({
     Title = "实用",
     IconName = "wrench"
+})
+
+utilSection:Toggle({
+    Title = "自动加入游戏",
+    Desc = "在大厅或死亡时，自动尝试加入游戏",
+    Value = false,
+    Callback = function(state)
+        autoJoinEnabled = state
+        if state then
+            enterRound()
+        end
+    end
 })
 
 utilSection:Toggle({
