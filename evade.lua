@@ -55,7 +55,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:Tag({
-    Title = "V1.13",
+    Title = "V1.14",
     Color = Color3.fromHex("00CED1"),
     Radius = 2,
 })
@@ -670,6 +670,19 @@ end)
 local avoidEnabled = false
 local avoidDistance = 30
 
+local function getItemSpawnPoints()
+    local map = workspace:FindFirstChild("Map")
+    local itemSpawns = map and map:FindFirstChild("ItemSpawns")
+    if not itemSpawns then return {} end
+    local list = {}
+    for _, s in ipairs(itemSpawns:GetChildren()) do
+        if s.Name == "ItemSpawn" then
+            table.insert(list, s)
+        end
+    end
+    return list
+end
+
 task.spawn(function()
     while true do
         task.wait()
@@ -696,19 +709,10 @@ task.spawn(function()
             end
 
             if nearest then
-                local map = workspace:FindFirstChild("Map")
-                local itemSpawns = map and map:FindFirstChild("ItemSpawns")
-                if itemSpawns then
-                    local list = {}
-                    for _, s in ipairs(itemSpawns:GetChildren()) do
-                        if s.Name == "ItemSpawn" then
-                            table.insert(list, s)
-                        end
-                    end
-                    if #list > 0 then
-                        local target = list[math.random(1, #list)]
-                        root.CFrame = target.CFrame
-                    end
+                local list = getItemSpawnPoints()
+                if #list > 0 then
+                    local target = list[math.random(1, #list)]
+                    root.CFrame = target.CFrame
                 end
             end
         end)
@@ -949,16 +953,21 @@ task.spawn(function()
 end)
 -- ==================== 自动装备灯笼 结束 ====================
 
--- ==================== 自动救：Q 扛起 → 飞到安全点 → Q 放下 → 长按 E 救 ====================
+-- ==================== 救人 / 放逐 ====================
 -- 反编译依据（ReplicatedStorage.Services.Asset.InteractionService.InteractionTypes）：
---   Revive 组：Carry  { Keybind = "Melee",    KeybindName = "Q" } → Interact:FireServer("Carry", tag)
---              Revive { Keybind = "Interact", KeybindName = "E", Length = "ReviveLength" }
---   放下：MobileInteractTypes 里 Carrying → UncarryIcon = "Melee"，即再按一次 Q
---   扛着时目标 Carried ≠ 0，此时 Requirements.Carried = false 不满足 → 必须先放下才能救
+--   Carry  = { Keybind = "Melee", KeybindName = "Q" }  → Interact:FireServer("Carry", tag)   扛起
+--   放下   = MobileInteractTypes 里 Carrying → UncarryIcon = "Melee"，再按一次 Q
+--   Revive = { Keybind = "Interact", KeybindName = "E", Length = "ReviveLength" } 长按 E
+--   扛着时目标 Carried ≠ 0，Requirements.Carried = false → 必须先放下才能救
+--
+-- 两种模式：
+--   rescue（救人）：扛起 → 随机 workspace.Map.ItemSpawns.ItemSpawn → 放下 → 长按 E 救
+--   banish（放逐）：扛起 → 地图外的"虚空上方" → 放下（玩家掉进虚空）→ 自己撤回安全点
 local rescueEnabled = false
+local rescueMode = "rescue"        -- "rescue" / "banish"
 local rescueVelocity = nil
 
-local rescueState = "idle"      -- idle / approach / carryWait / toSafe / drop / revive
+local rescueState = "idle"         -- idle / approach / carryWait / toSafe / drop / revive / retreat
 local rescueTarget = nil
 local rescueStateSince = 0
 local rescueCarryTries = 0
@@ -966,7 +975,7 @@ local rescueDropTries = 0
 local rescueSafePoint = nil
 local rescueTargetCooldown = {}
 local rescueDownedSince = {}
-local rescueScroll = 0
+local retreatPoint = nil
 
 local rescueWaitSeconds = 0
 
@@ -979,14 +988,14 @@ local rescueCFG = {
     FlySpeed = 2500,
     ArriveDist = 5,
     CarryRange = 7,
-    SafeAwayDistance = 90,
-    SafeHeight = 15,
+    BanishOffset = 150,       -- 地图边界外扩（虚空方向）
+    BanishHeight = 6,         -- 站在"虚空上方"的高度
     CarryTimeout = 2.0,
-    ToSafeTimeout = 6.0,
+    ToSafeTimeout = 7.0,
     DropTimeout = 2.0,
     ReviveTimeout = 10.0,
+    RetreatTimeout = 7.0,
     StateInterval = 0.05,
-    TargetSwitchDelay = 1.5,
     MaxDistance = 3000,
 }
 
@@ -1023,7 +1032,7 @@ local function restoreReviveLength()
     pcall(function() char.DataRegistry:Set("ReviveLength", originalReviveLength) end)
 end
 
--- 按键：先真按一次（玩家行为），再补一次游戏交互入口（被输入层吞掉时兜底）
+-- 按键：先真按一次，0.15s 后再补一次游戏交互入口（Carry 有 1s 冷却，不会重复触发）
 local function pressKeyVirtual(keyCode)
     if not keyCode then return end
     pcall(function()
@@ -1043,7 +1052,6 @@ local function pressKeybind(keybind, keyCode)
     end)
 end
 
--- 长按 E（放开时用 releaseE）
 local eHeld = false
 local function holdE()
     if not eHeld then
@@ -1069,20 +1077,14 @@ local function isPlayerDowned(model)
     return humanoid and humanoid.Health <= 0
 end
 
-local function myCharObj()
-    return lanternLocalCharacter()
-end
-
--- 我正在扛人吗（注册表 Carrying）
 local function isMyCarrying()
-    local char = myCharObj()
+    local char = lanternLocalCharacter()
     if not char or not char.DataRegistry then return false end
     local ok, v = pcall(function() return char.DataRegistry:Get("Carrying") end)
     if not ok then return false end
     return v ~= nil and v ~= 0
 end
 
--- 目标被扛着吗（注册表 Carried）
 local function isTargetCarried(model)
     local svc = lanternCharService()
     if not svc or not model then return false end
@@ -1117,38 +1119,65 @@ local function findDownedPlayer()
     return best
 end
 
-local function findNearestMonster(fromPos)
-    if not fromPos then return nil, math.huge end
-    local playersContainer = workspace:FindFirstChild("Players")
-    if not playersContainer then return nil, math.huge end
-    local nearest, nearestDist = nil, math.huge
-    for _, child in ipairs(playersContainer:GetChildren()) do
-        if child:IsA("Model") and child:GetAttribute("AI") == true then
-            local r = getRoot(child)
-            if r then
-                local d = (r.Position - fromPos).Magnitude
-                if d < nearestDist then
-                    nearest, nearestDist = child, d
+-- ===== 地图信息（算虚空点用）=====
+local mapInfoCache = nil
+local mapInfoAt = 0
+
+local function getMapInfo()
+    local now = tick()
+    if mapInfoCache and now - mapInfoAt < 20 then return mapInfoCache end
+
+    local info = { minX = nil, maxX = nil, minZ = nil, maxZ = nil, groundY = 0 }
+    local ys = {}
+    local rootFolder = workspace:FindFirstChild("Map") or workspace
+
+    for _, obj in ipairs(rootFolder:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Anchored then
+            local p = obj.Position
+            local s = obj.Size
+            if s.X < 600 and s.Z < 600 and s.Y < 600 then
+                info.minX = math.min(info.minX or p.X, p.X)
+                info.maxX = math.max(info.maxX or p.X, p.X)
+                info.minZ = math.min(info.minZ or p.Z, p.Z)
+                info.maxZ = math.max(info.maxZ or p.Z, p.Z)
+                if #ys < 4000 then
+                    table.insert(ys, p.Y)
                 end
             end
         end
     end
-    return nearest, nearestDist
+
+    if not info.minX then
+        local char = player.Character
+        local r = char and getRoot(char)
+        local base = r and r.Position or Vector3.new(0, 0, 0)
+        info.minX, info.maxX = base.X - 500, base.X + 500
+        info.minZ, info.maxZ = base.Z - 500, base.Z + 500
+        info.groundY = base.Y
+    else
+        info.groundY = (median(ys) or 0)
+    end
+
+    mapInfoCache = info
+    mapInfoAt = now
+    return info
 end
 
--- 安全点：朝"远离最近 Nextbot"的方向拉 90 格，再抬高 15 格
-local function computeSafePoint(fromPos)
-    local monster = findNearestMonster(fromPos)
-    local dir = Vector3.new(1, 0, 0)
-    if monster then
-        local r = getRoot(monster)
-        if r then
-            local v = fromPos - r.Position
-            v = Vector3.new(v.X, 0, v.Z)
-            if v.Magnitude > 0.5 then dir = v.Unit end
-        end
-    end
-    return fromPos + dir * rescueCFG.SafeAwayDistance + Vector3.new(0, rescueCFG.SafeHeight, 0)
+-- 虚空上方：地图边界外，无地板的空中，自己飞着不掉
+local function computeBanishPoint()
+    local info = getMapInfo()
+    local cx = (info.minX + info.maxX) / 2
+    local cz = (info.minZ + info.maxZ) / 2
+    local x = info.maxX + rescueCFG.BanishOffset
+    return Vector3.new(x, info.groundY + rescueCFG.BanishHeight, cz)
+end
+
+-- 救人落点：跟"自动躲避 Nextbot"一样，随机 ItemSpawn
+local function randomItemSpawnPos(widthOffset)
+    local list = getItemSpawnPoints()
+    if #list == 0 then return nil end
+    local pick = list[math.random(1, #list)]
+    return pick.Position + Vector3.new(0, widthOffset or (rescueCFG.HoverHeight + 2), 0)
 end
 
 local function getRescueVelocity(char)
@@ -1170,6 +1199,13 @@ local function destroyRescueVelocity()
         pcall(function() rescueVelocity:Destroy() end)
         rescueVelocity = nil
     end
+end
+
+local function stopRescueVelocity()
+    local char = player.Character
+    if not char then return end
+    local bv = getRescueVelocity(char)
+    if bv then bv.Velocity = Vector3.new(0, 0, 0) end
 end
 
 local function flyTo(pos, stopDist)
@@ -1197,12 +1233,26 @@ local function setState(s)
     print("[自动救] 状态 →", s)
 end
 
+local function stopRescue()
+    rescueEnabled = false
+    rescueTarget = nil
+    rescueSafePoint = nil
+    retreatPoint = nil
+    rescueCarryTries = 0
+    rescueDropTries = 0
+    releaseE()
+    destroyRescueVelocity()
+    rescueState = "idle"
+    rescueStateSince = tick()
+end
+
 local function abandonTarget(seconds)
     if rescueTarget then
         rescueTargetCooldown[rescueTarget] = tick() + (seconds or 6)
     end
     rescueTarget = nil
     rescueSafePoint = nil
+    retreatPoint = nil
     rescueCarryTries = 0
     rescueDropTries = 0
     releaseE()
@@ -1215,8 +1265,21 @@ local function startApproach(model)
     rescueCarryTries = 0
     rescueDropTries = 0
     rescueSafePoint = nil
+    retreatPoint = nil
     releaseE()
     setState("approach")
+end
+
+-- 目的地：救 = 随机 ItemSpawn；放逐 = 地图外虚空上方
+local function pickDestination()
+    if rescueMode == "banish" then
+        return computeBanishPoint()
+    end
+    local pos = randomItemSpawnPos(rescueCFG.HoverHeight + 2)
+    if pos then return pos end
+    -- 没有 ItemSpawns 就退回地图中心上方
+    local info = getMapInfo()
+    return Vector3.new((info.minX + info.maxX) / 2, info.groundY + 40, (info.minZ + info.maxZ) / 2)
 end
 
 task.spawn(function()
@@ -1224,13 +1287,7 @@ task.spawn(function()
         task.wait(rescueCFG.StateInterval)
 
         if not rescueEnabled then
-            if rescueState ~= "idle" then
-                rescueTarget = nil
-                rescueSafePoint = nil
-                releaseE()
-                destroyRescueVelocity()
-                setState("idle")
-            end
+            if rescueState ~= "idle" then stopRescue() end
             continue
         end
 
@@ -1243,13 +1300,14 @@ task.spawn(function()
             continue
         end
 
-        -- ===== 优先级：有代币可捡就先捡代币（高于救人）=====
+        -- ===== 优先级：有代币可捡就先捡代币 =====
         if toraCollectEnabled and hasTokens() then
             if rescueState ~= "idle" and rescueState ~= "revive" and rescueState ~= "drop" then
                 if not isMyCarrying() then
                     print("[自动救] 检测到代币，救人让路（捡代币优先）")
                     rescueTarget = nil
                     rescueSafePoint = nil
+                    retreatPoint = nil
                     releaseE()
                     destroyRescueVelocity()
                     setState("idle")
@@ -1258,7 +1316,6 @@ task.spawn(function()
             continue
         end
 
-        -- ===== 状态机 =====
         if rescueState == "idle" then
             local target = findDownedPlayer()
             if target and now >= (rescueTargetCooldown[target] or 0) then
@@ -1270,7 +1327,6 @@ task.spawn(function()
                 end
             end
 
-            -- 清理过期记录
             for m in pairs(rescueTargetCooldown) do
                 if not isPlayerDowned(m) then rescueTargetCooldown[m] = nil end
             end
@@ -1280,22 +1336,26 @@ task.spawn(function()
             continue
         end
 
+        -- 目标已经起身：收工
         if not rescueTarget or not isPlayerDowned(rescueTarget) then
-            -- 被别人救起来了 / 目标没了
-            abandonTarget(2)
-            continue
+            if rescueState == "retreat" then
+                -- 放逐完撤退中，继续飞回去
+            else
+                abandonTarget(2)
+                continue
+            end
         end
 
-        local targetRoot = getRoot(rescueTarget)
-        if not targetRoot then
+        local targetRoot = rescueTarget and getRoot(rescueTarget)
+        if rescueState ~= "retreat" and (not targetRoot) then
             abandonTarget(3)
             continue
         end
 
         if rescueState == "approach" then
-            local ok, dist = flyTo(targetRoot.Position + Vector3.new(0, rescueCFG.HoverHeight, 0), rescueCFG.CarryRange - 1)
+            local ok = flyTo(targetRoot.Position + Vector3.new(0, rescueCFG.HoverHeight, 0), rescueCFG.CarryRange - 1)
             if ok then
-                do local bvStop = getRescueVelocity(myChar) if bvStop then bvStop.Velocity = Vector3.new(0, 0, 0) end end
+                stopRescueVelocity()
                 pressKeybind("Melee", Enum.KeyCode.Q)
                 rescueCarryTries = 1
                 setState("carryWait")
@@ -1307,8 +1367,12 @@ task.spawn(function()
 
         if rescueState == "carryWait" then
             if isMyCarrying() then
-                rescueSafePoint = computeSafePoint(targetRoot.Position)
-                print("[自动救] 已扛起，前往安全点")
+                rescueSafePoint = pickDestination()
+                if rescueMode == "banish" then
+                    print("[放逐] 已扛起，前往地图外虚空上方")
+                else
+                    print("[自动救] 已扛起，前往随机 ItemSpawn")
+                end
                 setState("toSafe")
             elseif now - rescueStateSince > rescueCFG.CarryTimeout then
                 if rescueCarryTries < 3 then
@@ -1325,24 +1389,19 @@ task.spawn(function()
 
         if rescueState == "toSafe" then
             if not rescueSafePoint then
-                rescueSafePoint = computeSafePoint(targetRoot.Position)
+                rescueSafePoint = pickDestination()
             end
 
-            local myRootNow = getRoot(myChar)
-            local myPos = myRootNow and myRootNow.Position or targetRoot.Position
-
-            -- 途中被怪物逼近就重算一次安全点
-            local monster, mdist = findNearestMonster(myPos)
-            if monster and mdist < 25 then
-                rescueSafePoint = computeSafePoint(myPos)
-            end
-
-            local ok = flyTo(rescueSafePoint, 5)
-            if ok or now - rescueStateSince > rescueCFG.ToSafeTimeout then
-                do local bvStop = getRescueVelocity(myChar) if bvStop then bvStop.Velocity = Vector3.new(0, 0, 0) end end
+            local atDest = flyTo(rescueSafePoint, 5)
+            if atDest or now - rescueStateSince > rescueCFG.ToSafeTimeout then
+                stopRescueVelocity()
                 rescueDropTries = 1
                 pressKeybind("Melee", Enum.KeyCode.Q)
-                print("[自动救] 到点，放下")
+                if rescueMode == "banish" then
+                    print("[放逐] 到虚空上方，丢下目标")
+                else
+                    print("[自动救] 到 ItemSpawn，放下")
+                end
                 setState("drop")
             end
             continue
@@ -1350,15 +1409,24 @@ task.spawn(function()
 
         if rescueState == "drop" then
             if not isMyCarrying() then
-                print("[自动救] 已放下，开始长按 E")
-                setState("revive")
+                if rescueMode == "banish" then
+                    -- 丢进虚空后，自己立刻撤回安全点
+                    retreatPoint = randomItemSpawnPos(20) or (getMapInfo() and Vector3.new(
+                        (getMapInfo().minX + getMapInfo().maxX) / 2,
+                        getMapInfo().groundY + 80,
+                        (getMapInfo().minZ + getMapInfo().maxZ) / 2))
+                    print("[放逐] 已丢下，撤回安全点")
+                    setState("retreat")
+                else
+                    print("[自动救] 已放下，开始长按 E")
+                    setState("revive")
+                end
             elseif now - rescueStateSince > rescueCFG.DropTimeout then
                 if rescueDropTries < 3 then
                     rescueDropTries = rescueDropTries + 1
                     pressKeybind("Melee", Enum.KeyCode.Q)
                     rescueStateSince = now
                 else
-                    -- 放不下也硬救一次（有些情况 Carried 已经清了）
                     print("[自动救] 放不下，直接尝试救人")
                     setState("revive")
                 end
@@ -1366,12 +1434,27 @@ task.spawn(function()
             continue
         end
 
+        if rescueState == "retreat" then
+            if not retreatPoint then
+                retreatPoint = randomItemSpawnPos(20)
+                if not retreatPoint then
+                    abandonTarget(2)
+                    continue
+                end
+            end
+            local reached = flyTo(retreatPoint, 6)
+            if reached or now - rescueStateSince > rescueCFG.RetreatTimeout then
+                stopRescueVelocity()
+                print("[放逐] 已回到安全区")
+                abandonTarget(2)
+            end
+            continue
+        end
+
         if rescueState == "revive" then
-            -- 贴身（目标可能被拖动）
             local nearOk = flyTo(targetRoot.Position + Vector3.new(0, rescueCFG.HoverHeight, 0), rescueCFG.CarryRange - 2)
             if nearOk then
-                local bv = getRescueVelocity(myChar)
-                if bv then bv.Velocity = Vector3.new(0, 0, 0) end
+                stopRescueVelocity()
                 holdE()
             else
                 releaseE()
@@ -1386,11 +1469,11 @@ task.spawn(function()
     end
 end)
 
--- 目标被救起来了就立刻收拾状态
+-- 目标被救起来就立刻收工
 task.spawn(function()
     while true do
         task.wait(0.2)
-        if rescueTarget and not isPlayerDowned(rescueTarget) then
+        if rescueTarget and rescueState ~= "retreat" and not isPlayerDowned(rescueTarget) then
             print("[自动救] 目标已起身，收工")
             releaseE()
             rescueTargetCooldown[rescueTarget] = tick() + 2
@@ -1401,7 +1484,7 @@ task.spawn(function()
         end
     end
 end)
--- ==================== 自动救 结束 ====================
+-- ==================== 救人 / 放逐 结束 ====================
 
 local boomboxEnabled = false
 local bbCurrent = nil
@@ -1672,18 +1755,34 @@ local rescueSection = Tab:Section({
     IconName = "hand-heart"
 })
 
-rescueSection:Toggle({
-    Title = "自动救",
-    Desc = "靠近后 Q 扛起 → 飞到安全点 → Q 放下 → 长按 E 救起",
+local rescueToggle, banishToggle
+
+rescueToggle = rescueSection:Toggle({
+    Title = "自动救（送到 ItemSpawn 救）",
+    Desc = "扛起倒地队友 → 随机 ItemSpawn → 放下 → 长按 E 救起",
     Value = false,
     Callback = function(state)
-        rescueEnabled = state
-        if not state then
-            rescueTarget = nil
-            rescueSafePoint = nil
-            releaseE()
-            destroyRescueVelocity()
-            setState("idle")
+        if state then
+            rescueMode = "rescue"
+            rescueEnabled = true
+            if banishToggle then pcall(function() banishToggle:Set(false) end) end
+        else
+            if rescueMode == "rescue" then stopRescue() end
+        end
+    end
+})
+
+banishToggle = rescueSection:Toggle({
+    Title = "放逐（丢进虚空）",
+    Desc = "扛起后飞到地图外的虚空上方 → 丢下 → 自己撤回安全点",
+    Value = false,
+    Callback = function(state)
+        if state then
+            rescueMode = "banish"
+            rescueEnabled = true
+            if rescueToggle then pcall(function() rescueToggle:Set(false) end) end
+        else
+            if rescueMode == "banish" then stopRescue() end
         end
     end
 })
@@ -1715,14 +1814,14 @@ rescueSection:Slider({
 })
 
 rescueSection:Slider({
-    Title = "安全点距离",
+    Title = "放逐外扩距离",
     Value = {
         Min = 30,
-        Max = 300,
-        Default = 90,
+        Max = 400,
+        Default = 150,
     },
     Callback = function(value)
-        rescueCFG.SafeAwayDistance = value
+        rescueCFG.BanishOffset = value
     end
 })
 
@@ -1893,11 +1992,11 @@ utilSection:Button({
 })
 
 utilSection:Button({
-    Title = "救人状态诊断",
-    Desc = "打印扛人 / 被扛 / 代币状态到控制台",
+    Title = "救人 / 放逐状态诊断",
+    Desc = "打印状态、扛人情况、目标点、代币到控制台",
     Callback = function()
         local lines = { "===== 救人状态 =====" }
-        lines[#lines + 1] = "状态: " .. tostring(rescueState)
+        lines[#lines + 1] = "模式: " .. tostring(rescueMode) .. " / 状态: " .. tostring(rescueState)
         lines[#lines + 1] = "目标: " .. (rescueTarget and tostring(rescueTarget.Name) or "nil")
         lines[#lines + 1] = "我扛着人: " .. tostring(isMyCarrying())
         if rescueTarget then
@@ -1905,13 +2004,15 @@ utilSection:Button({
             lines[#lines + 1] = "目标倒地: " .. tostring(isPlayerDowned(rescueTarget))
         end
         lines[#lines + 1] = "有代币可捡: " .. tostring(hasTokens())
-        lines[#lines + 1] = "本地 ReviveLength: " .. tostring((function()
-            local c = lanternLocalCharacter()
-            if c and c.DataRegistry then return c.DataRegistry:Get("ReviveLength") end
-        end)())
+        lines[#lines + 1] = "目的地: " .. (rescueSafePoint and tostring(rescueSafePoint) or "nil")
+        local itemCount = #getItemSpawnPoints()
+        lines[#lines + 1] = "ItemSpawn 数量: " .. tostring(itemCount)
+        local info = getMapInfo()
+        lines[#lines + 1] = string.format("地图边界 X[%.0f,%.0f] Z[%.0f,%.0f] 地面Y=%.0f",
+            info.minX, info.maxX, info.minZ, info.maxZ, info.groundY)
         local text = table.concat(lines, "\n")
         print(text)
-        WindUI:Notify({ Title = "救人状态", Content = (text:gsub("\n", " | ")):sub(1, 110), Duration = 4 })
+        WindUI:Notify({ Title = "救人状态", Content = (text:gsub("\n", " | ")):sub(1, 120), Duration = 4 })
     end
 })
 
