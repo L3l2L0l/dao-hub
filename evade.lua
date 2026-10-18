@@ -55,7 +55,7 @@ local Window = WindUI:CreateWindow({
 })
 
 Window:Tag({
-    Title = "V1.14",
+    Title = "V1.15",
     Color = Color3.fromHex("00CED1"),
     Radius = 2,
 })
@@ -977,6 +977,12 @@ local rescueTargetCooldown = {}
 local rescueDownedSince = {}
 local retreatPoint = nil
 
+-- 虚空检测 / 防重复扛人
+local banishedTags = {}          -- tag -> tick（已经丢进虚空的人，记住一段时间）
+local rescueFailCount = {}       -- model -> 失败次数
+local BANISH_MEMORY = 180        -- 记住多少秒
+local MAX_TARGET_FAILS = 2       -- 同一目标失败几次后拉黑
+
 local rescueWaitSeconds = 0
 
 local fastReviveEnabled = false
@@ -1097,6 +1103,22 @@ local function isTargetCarried(model)
     return v ~= nil and v ~= 0
 end
 
+local isInVoid   -- 前向声明，具体实现定义在 getMapInfo 之后
+
+-- 这个人最近是不是被我们丢进虚空了
+local function isBanishedRecently(model)
+    if not model then return false end
+    local tag = model:GetAttribute("Tag")
+    if tag == nil then return false end
+    local at = banishedTags[tag]
+    if not at then return false end
+    if tick() - at > BANISH_MEMORY then
+        banishedTags[tag] = nil
+        return false
+    end
+    return true
+end
+
 local function findDownedPlayer()
     local container = workspace:FindFirstChild("Players")
     if not container then return nil end
@@ -1105,12 +1127,21 @@ local function findDownedPlayer()
     local myRoot = myChar and getRoot(myChar)
     for _, model in ipairs(container:GetChildren()) do
         if model:IsA("Model") and model ~= myChar and model:GetAttribute("Team") == "PlayerTeam" then
-            if isPlayerDowned(model) then
+            if isPlayerDowned(model) and not isBanishedRecently(model) then
                 local root = getRoot(model)
                 if root then
-                    local dist = myRoot and (root.Position - myRoot.Position).Magnitude or 0
-                    if dist <= rescueCFG.MaxDistance and dist < bestDist then
-                        best, bestDist = model, dist
+                    local skip = false
+
+                    -- 已经掉进虚空的（人还在，但位置在地图外/地面以下）不再去扛
+                    if isInVoid and isInVoid(model) then skip = true end
+                    -- 被别人扛着的也不再抢
+                    if not skip and isTargetCarried(model) then skip = true end
+
+                    if not skip then
+                        local dist = myRoot and (root.Position - myRoot.Position).Magnitude or 0
+                        if dist <= rescueCFG.MaxDistance and dist < bestDist then
+                            best, bestDist = model, dist
+                        end
                     end
                 end
             end
@@ -1180,6 +1211,41 @@ local function randomItemSpawnPos(widthOffset)
     return pick.Position + Vector3.new(0, widthOffset or (rescueCFG.HoverHeight + 2), 0)
 end
 
+-- ===== 虚空检测 =====
+-- 判定"已经掉进虚空"：远低于地面，或者在地图水平范围之外且高度低于地面上方 40 格
+isInVoid = function(model)
+    if not model then return true end
+    local root = getRoot(model)
+    if not root then return true end
+
+    local info = getMapInfo()
+    local p = root.Position
+
+    if p.Y < info.groundY - 80 then
+        return true
+    end
+
+    local margin = 120
+    local outsideXZ = (p.X < info.minX - margin) or (p.X > info.maxX + margin)
+        or (p.Z < info.minZ - margin) or (p.Z > info.maxZ + margin)
+
+    if outsideXZ and p.Y < info.groundY + 40 then
+        return true
+    end
+
+    return false
+end
+
+-- 把目标记进"已放逐"名单（防止反复去扛同一个掉进虚空的人）
+local function markBanished(model)
+    if not model then return end
+    local tag = model:GetAttribute("Tag")
+    if tag == nil then return end
+    banishedTags[tag] = tick()
+    print("[放逐] 已记录到虚空名单 tag=" .. tostring(tag) .. "（" .. BANISH_MEMORY .. " 秒内不再处理）")
+end
+
+
 local function getRescueVelocity(char)
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return nil end
@@ -1248,7 +1314,16 @@ end
 
 local function abandonTarget(seconds)
     if rescueTarget then
-        rescueTargetCooldown[rescueTarget] = tick() + (seconds or 6)
+        local fails = (rescueFailCount[rescueTarget] or 0) + 1
+        rescueFailCount[rescueTarget] = fails
+
+        local cd = seconds or 6
+        if fails >= MAX_TARGET_FAILS then
+            cd = math.max(cd, 90)
+            print("[自动救] 目标 " .. tostring(rescueTarget.Name) .. " 连续失败 "
+                .. tostring(fails) .. " 次，先拉黑 90 秒")
+        end
+        rescueTargetCooldown[rescueTarget] = tick() + cd
     end
     rescueTarget = nil
     rescueSafePoint = nil
@@ -1328,10 +1403,17 @@ task.spawn(function()
             end
 
             for m in pairs(rescueTargetCooldown) do
-                if not isPlayerDowned(m) then rescueTargetCooldown[m] = nil end
+                if not isPlayerDowned(m) then
+                    rescueTargetCooldown[m] = nil
+                    rescueFailCount[m] = nil
+                end
             end
             for m in pairs(rescueDownedSince) do
                 if not isPlayerDowned(m) then rescueDownedSince[m] = nil end
+            end
+            -- 清理过期的虚空名单
+            for tag, at in pairs(banishedTags) do
+                if now - at > BANISH_MEMORY then banishedTags[tag] = nil end
             end
             continue
         end
@@ -1350,6 +1432,18 @@ task.spawn(function()
         if rescueState ~= "retreat" and (not targetRoot) then
             abandonTarget(3)
             continue
+        end
+
+        -- 目标已经在虚空里（自己掉的 / 被别人丢的）：别再去扛，直接跳过
+        if rescueState ~= "retreat" and rescueState ~= "drop" then
+            if rescueTarget and isInVoid(rescueTarget) then
+                if rescueMode == "banish" then
+                    markBanished(rescueTarget)
+                end
+                print("[自动救] 目标已在虚空，跳过该目标")
+                abandonTarget(5)
+                continue
+            end
         end
 
         if rescueState == "approach" then
@@ -1410,11 +1504,16 @@ task.spawn(function()
         if rescueState == "drop" then
             if not isMyCarrying() then
                 if rescueMode == "banish" then
+                    -- 记进虚空名单，之后不再去扛这个人
+                    markBanished(rescueTarget)
+                    rescueFailCount[rescueTarget] = nil
+
                     -- 丢进虚空后，自己立刻撤回安全点
-                    retreatPoint = randomItemSpawnPos(20) or (getMapInfo() and Vector3.new(
-                        (getMapInfo().minX + getMapInfo().maxX) / 2,
-                        getMapInfo().groundY + 80,
-                        (getMapInfo().minZ + getMapInfo().maxZ) / 2))
+                    local info = getMapInfo()
+                    retreatPoint = randomItemSpawnPos(20) or Vector3.new(
+                        (info.minX + info.maxX) / 2,
+                        info.groundY + 80,
+                        (info.minZ + info.maxZ) / 2)
                     print("[放逐] 已丢下，撤回安全点")
                     setState("retreat")
                 else
@@ -1477,6 +1576,7 @@ task.spawn(function()
             print("[自动救] 目标已起身，收工")
             releaseE()
             rescueTargetCooldown[rescueTarget] = tick() + 2
+            rescueFailCount[rescueTarget] = nil
             rescueTarget = nil
             rescueSafePoint = nil
             destroyRescueVelocity()
@@ -1993,7 +2093,7 @@ utilSection:Button({
 
 utilSection:Button({
     Title = "救人 / 放逐状态诊断",
-    Desc = "打印状态、扛人情况、目标点、代币到控制台",
+    Desc = "打印状态、扛人情况、虚空判定、目标点到控制台",
     Callback = function()
         local lines = { "===== 救人状态 =====" }
         lines[#lines + 1] = "模式: " .. tostring(rescueMode) .. " / 状态: " .. tostring(rescueState)
@@ -2002,7 +2102,12 @@ utilSection:Button({
         if rescueTarget then
             lines[#lines + 1] = "目标被扛: " .. tostring(isTargetCarried(rescueTarget))
             lines[#lines + 1] = "目标倒地: " .. tostring(isPlayerDowned(rescueTarget))
+            lines[#lines + 1] = "目标在虚空: " .. tostring(isInVoid(rescueTarget))
+            lines[#lines + 1] = "目标已被放逐(记忆): " .. tostring(isBanishedRecently(rescueTarget))
         end
+        local banishedCount = 0
+        for _ in pairs(banishedTags) do banishedCount = banishedCount + 1 end
+        lines[#lines + 1] = "虚空名单人数: " .. tostring(banishedCount)
         lines[#lines + 1] = "有代币可捡: " .. tostring(hasTokens())
         lines[#lines + 1] = "目的地: " .. (rescueSafePoint and tostring(rescueSafePoint) or "nil")
         local itemCount = #getItemSpawnPoints()
@@ -2013,6 +2118,17 @@ utilSection:Button({
         local text = table.concat(lines, "\n")
         print(text)
         WindUI:Notify({ Title = "救人状态", Content = (text:gsub("\n", " | ")):sub(1, 120), Duration = 4 })
+    end
+})
+
+utilSection:Button({
+    Title = "清空虚空名单",
+    Desc = "把已放逐记忆清掉（正常情况下不需要）",
+    Callback = function()
+        for tag in pairs(banishedTags) do banishedTags[tag] = nil end
+        for m in pairs(rescueFailCount) do rescueFailCount[m] = nil end
+        for m in pairs(rescueTargetCooldown) do rescueTargetCooldown[m] = nil end
+        WindUI:Notify({ Title = "放逐", Content = "已清空虚空名单与失败记录", Duration = 2 })
     end
 })
 
